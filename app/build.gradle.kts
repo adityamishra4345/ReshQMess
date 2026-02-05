@@ -57,4 +57,12 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    // 1. The Mesh Engine
+    implementation("com.google.android.gms:play-services-nearby:19.0.0")
+    // 2. Data Packaging (JSON)
+    implementation("com.google.code.gson:gson:2.10.1")
+    // 3. LiveData Bridge
+    implementation("androidx.compose.runtime:runtime-livedata:1.5.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
+    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
 }

@@ -85,4 +85,52 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")    // Fixes 'ConstraintLayout'
     implementation("com.google.accompanist:accompanist-permissions:0.32.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("androidx.compose.material:material-icons-extended:1.5.4")
+    implementation("androidx.compose.material:material-icons-extended:1.6.0")
+    implementation("androidx.compose.material:material-icons-extended:1.6.0")
+    implementation("androidx.compose.material:material-icons-extended:1.6.0")
+    // ... keep your other dependencies like core-ktx, lifecycle, etc ...
+
+    // 1. FIX FOR "INTELLIGENT WIFI SWITCHING" (Must be version 19.0.0 or higher)
+    implementation("com.google.android.gms:play-services-nearby:19.2.0")
+
+    // 2. FIX FOR "PRO ICONS" (Radar, EmergencyShare, Security)
+    implementation("androidx.compose.material:material-icons-extended:1.6.0")
+
+    // 3. MAPS & LOCATION
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
+    implementation("com.google.android.gms:play-services-location:21.1.0")
+
+    // Standard Compose stuff (Keep what you already have here)
+    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("com.google.android.gms:play-services-nearby:19.2.0")
+
+    // 2. FIX FOR "PRO ICONS" (Radar, EmergencyShare, Security)
+    implementation("androidx.compose.material:material-icons-extended:1.6.0")
+
+    // 3. MAPS & LOCATION
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
+    implementation("com.google.android.gms:play-services-location:21.1.0")
+
+    // Standard Compose stuff (Keep what you already have here)
+    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    dependencies {
+        // ... other stuff ...
+
+        // THIS IS THE KEY TO INTELLIGENT SWITCHING (Must be 19.2.0 or newer)
+        implementation("com.google.android.gms:play-services-nearby:19.2.0")
+
+        // THIS IS FOR THE ICONS
+        implementation("androidx.compose.material:material-icons-extended:1.6.0")
+
+        // ... other stuff ...
+    }
 }

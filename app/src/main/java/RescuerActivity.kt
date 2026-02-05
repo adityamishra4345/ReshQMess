@@ -1,5 +1,6 @@
 package com.example.reshqmess
 
+import android.location.Location
 import android.os.Bundle
 import android.preference.PreferenceManager
 import androidx.appcompat.app.AppCompatActivity
@@ -15,50 +16,65 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 class RescuerActivity : AppCompatActivity() {
 
     private lateinit var map: MapView
+    private lateinit var locationOverlay: MyLocationNewOverlay
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 1. Initialize Osmdroid Configuration
         Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
-
         setContentView(R.layout.activity_rescuer)
 
-        // 2. Setup the Map View
         map = findViewById(R.id.mapView)
         map.setMultiTouchControls(true)
 
-        // 3. Set Home Base to Guwahati Center
+        // Guwahati Home Base
         val mapController = map.controller
         mapController.setZoom(14.5)
-        val guwahatiCenter = GeoPoint(26.1445, 91.7362)
-        mapController.setCenter(guwahatiCenter)
+        mapController.setCenter(GeoPoint(26.1445, 91.7362))
 
-        // 4. Set Bounding Box (Lock to Guwahati)
-        val guwahatiBounds = BoundingBox(26.25, 91.90, 26.05, 91.55)
-        map.setScrollableAreaLimitDouble(guwahatiBounds)
+        // Lock to Guwahati
+        map.setScrollableAreaLimitDouble(BoundingBox(26.25, 91.90, 26.05, 91.55))
 
-        // 5. Show Real-time Rescuer Location (The "Puck")
-        val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), map)
+        // Setup User Location (The Puck)
+        locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), map)
         locationOverlay.enableMyLocation()
-        locationOverlay.enableFollowLocation()
         map.overlays.add(locationOverlay)
 
-        // --- TEST: Add a Victim Pin (You can delete this later) ---
-        addVictimMarker(26.185, 91.748, "Distress Signal A")
+        // TEST: Add a victim near Uzan Bazar
+        addVictimMarker(26.1912, 91.7502, "Victim A")
     }
 
-    // Function to add the red pin for victims
-    private fun addVictimMarker(lat: Double, lng: Double, title: String) {
+    // 1. Logic to calculate distance between you and the victim
+    private fun getDistanceString(victimLat: Double, victimLng: Double): String {
+        val userLocation = locationOverlay.myLocation ?: return "Distance unknown"
+
+        val results = FloatArray(1)
+        Location.distanceBetween(
+            userLocation.latitude, userLocation.longitude,
+            victimLat, victimLng,
+            results
+        )
+
+        val distanceInMeters = results[0]
+        return if (distanceInMeters >= 1000) {
+            String.format("%.1f km away", distanceInMeters / 1000)
+        } else {
+            String.format("%d m away", distanceInMeters.toInt())
+        }
+    }
+
+    // 2. Updated marker logic to include the distance label
+    private fun addVictimMarker(lat: Double, lng: Double, name: String) {
         val victimMarker = Marker(map)
         victimMarker.position = GeoPoint(lat, lng)
         victimMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-
-        // Use the icon you added to the drawable folder
         victimMarker.icon = ContextCompat.getDrawable(this, R.drawable.ic_victim_pin)
-        victimMarker.title = title
+
+        // Combine Name and Distance
+        val distanceLabel = getDistanceString(lat, lng)
+        victimMarker.title = "$name\n$distanceLabel"
 
         map.overlays.add(victimMarker)
-        map.invalidate() // Refresh map
+        map.invalidate()
     }
 }

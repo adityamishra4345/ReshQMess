@@ -57,4 +57,21 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    dependencies {
+        // 1. The Map (Osmdroid)
+        implementation("org.osmdroid:osmdroid-android:6.1.18")
+
+        // 2. Google Location Services (For 1-sec updates & Guwahati centering)
+        implementation("com.google.android.gms:play-services-location:21.0.1")
+
+        // 3. JSON & Data (For the SosPayload from Person C)
+        implementation("com.google.code.gson:gson:2.10.1")
+
+        // 4. Android Essentials (UI & Logic)
+        implementation("androidx.appcompat:appcompat:1.6.1")
+        implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+        implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
+        implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.2")
+        implementation("androidx.activity:activity-ktx:1.8.0")
+    }
 }

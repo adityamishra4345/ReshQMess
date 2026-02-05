@@ -7,14 +7,13 @@ data class SosPayload(
     val victimName: String,
     val lat: Double,
     val lng: Double,
-    val message: String
+    val message: String,
+    val type: String // NEW: "CRITICAL" or "SAFE"
 ) {
-    // Helper: Pack object into Bytes
     fun toBytes(): ByteArray {
         return Gson().toJson(this).toByteArray(StandardCharsets.UTF_8)
     }
 
-    // Helper: Unpack Bytes back to Object
     companion object {
         fun fromBytes(bytes: ByteArray): SosPayload? {
             return try {

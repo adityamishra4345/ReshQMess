@@ -57,4 +57,32 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    // ... other stuff ...
+
+    // 1. LiveData for Compose (Fixes 'observeAsState')
+    implementation("androidx.compose.runtime:runtime-livedata:1.5.0")
+
+    // 2. Permissions (Fixes 'ExperimentalPermissionsApi')
+    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+
+    // 3. Google Nearby (Fixes 'google' reference if related to Mesh)
+    implementation("com.google.android.gms:play-services-nearby:19.0.0")
+
+    // 4. OSMDroid (Fixes MapView if you pulled the map code)
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
+    // --- CORE ENGINE TOOLS ---
+    implementation("com.google.android.gms:play-services-nearby:19.0.0")  // Wi-Fi Direct
+    implementation("com.google.code.gson:gson:2.10.1")                    // Fixes 'gson' error
+    implementation("androidx.compose.runtime:runtime-livedata:1.5.0")     // LiveData
+
+    // --- MAP TOOLS ---
+    implementation("org.osmdroid:osmdroid-android:6.1.18")                // OSM Map
+
+    // --- COMPATIBILITY TOOLS (For your teammate's XML code) ---
+    implementation("androidx.appcompat:appcompat:1.6.1")                  // Fixes 'AppCompatActivity'
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")    // Fixes 'ConstraintLayout'
+    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+    implementation("com.google.android.gms:play-services-location:21.0.1")
 }

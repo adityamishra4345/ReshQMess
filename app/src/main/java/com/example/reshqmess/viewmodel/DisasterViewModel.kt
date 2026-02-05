@@ -1,39 +1,41 @@
 package com.example.reshqmess.viewmodel
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import com.example.reshqmess.model.SosPayload
 
-class DisasterViewModel : ViewModel() {
+class DisasterViewModel(application: Application) : AndroidViewModel(application) {
 
-    // 1. List of Victims (The Map Team watches this)
+    // 1. CONNECTION STATUS (New!)
+    private val _connectionStatus = MutableLiveData<String>("Idle: Ready to Connect")
+    val connectionStatus: LiveData<String> = _connectionStatus
+
+    // 2. LOGS & LISTS
     private val _victimList = MutableLiveData<List<SosPayload>>(emptyList())
     val victimList: LiveData<List<SosPayload>> = _victimList
 
-    // 2. Logs (For debugging)
-    private val _logs = MutableLiveData<List<String>>(emptyList())
-    val logs: LiveData<List<String>> = _logs
+    private val _chatHistory = MutableLiveData<List<SosPayload>>(emptyList())
+    val chatHistory: LiveData<List<SosPayload>> = _chatHistory
 
-    // Called when a new SOS signal arrives
-    fun addOrUpdateVictim(newVictim: SosPayload) {
-        val currentList = _victimList.value.orEmpty().toMutableList()
+    private val victimMap = mutableMapOf<String, SosPayload>()
+    private val fullChatList = mutableListOf<SosPayload>()
 
-        // Update if exists, Add if new
-        val index = currentList.indexOfFirst { it.victimName == newVictim.victimName }
-        if (index != -1) {
-            currentList[index] = newVictim
-        } else {
-            currentList.add(newVictim)
-        }
-
-        _victimList.postValue(currentList)
-        addLog("UPDATED: ${newVictim.victimName}")
+    // Function to update status (Called by MeshManager)
+    fun setStatus(status: String) {
+        _connectionStatus.postValue(status)
     }
 
-    fun addLog(msg: String) {
-        val current = _logs.value.orEmpty().toMutableList()
-        current.add(0, msg)
-        _logs.postValue(current)
+    fun addOrUpdateVictim(payload: SosPayload) {
+        // Update Map
+        victimMap[payload.victimName] = payload
+        _victimList.postValue(victimMap.values.toList())
+
+        // Update Chat
+        if (payload.message.isNotEmpty()) {
+            fullChatList.add(payload)
+            _chatHistory.postValue(fullChatList.toList())
+        }
     }
 }

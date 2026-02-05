@@ -5,87 +5,109 @@ import com.example.reshqmess.model.SosPayload
 import com.example.reshqmess.viewmodel.DisasterViewModel
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
+import java.nio.charset.StandardCharsets
 
 class MeshManager(private val context: Context, private val viewModel: DisasterViewModel) {
 
-    private val STRATEGY = Strategy.P2P_STAR
-    private val SERVICE_ID = "com.example.reshqmess.SERVICE"
+    private val connectionsClient = Nearby.getConnectionsClient(context)
+    private var myEndpointId: String? = null
 
-    // Track who we are talking to
-    private val connectedEndpoints = mutableListOf<String>()
-
-    // 1. HOST (Victim)
+    // 1. START HOSTING (Advertising)
     fun startHosting(name: String) {
-        val options = AdvertisingOptions.Builder().setStrategy(STRATEGY).build()
-        Nearby.getConnectionsClient(context)
-            .startAdvertising(name, SERVICE_ID, connectionLifecycleCallback, options)
-            .addOnSuccessListener { viewModel.addLog("Broadcasting as $name...") }
-            .addOnFailureListener { viewModel.addLog("Error: ${it.message}") }
+        viewModel.setStatus("📡 Advertising as $name...")
+        val options = AdvertisingOptions.Builder().setStrategy(Strategy.P2P_CLUSTER).build()
+
+        connectionsClient.startAdvertising(
+            name,
+            "com.example.reshqmess",
+            connectionLifecycleCallback,
+            options
+        ).addOnSuccessListener {
+            viewModel.setStatus("✅ You are now HOSTING")
+        }.addOnFailureListener {
+            viewModel.setStatus("❌ Host Failed: ${it.message}")
+        }
     }
 
-    // 2. CLIENT (Rescuer)
+    // 2. START SCANNING (Discovery)
     fun startDiscovery() {
-        val options = DiscoveryOptions.Builder().setStrategy(STRATEGY).build()
-        Nearby.getConnectionsClient(context)
-            .startDiscovery(SERVICE_ID, endpointDiscoveryCallback, options)
-            .addOnSuccessListener { viewModel.addLog("Scanning for signals...") }
-            .addOnFailureListener { viewModel.addLog("Error: ${it.message}") }
-    }
+        viewModel.setStatus("🔍 Scanning for nearby devices...")
+        val options = DiscoveryOptions.Builder().setStrategy(Strategy.P2P_CLUSTER).build()
 
-    // 3. THE MISSING PIECE: Function to Send Data
-    fun sendSos(payload: SosPayload) {
-        val bytes = payload.toBytes()
-        val dataPayload = Payload.fromBytes(bytes)
-
-        if (connectedEndpoints.isEmpty()) {
-            viewModel.addLog("No one to send to! (Wait for connection)")
-            return
+        connectionsClient.startDiscovery(
+            "com.example.reshqmess",
+            endpointDiscoveryCallback,
+            options
+        ).addOnSuccessListener {
+            viewModel.setStatus("✅ Scan Started. Waiting for devices...")
+        }.addOnFailureListener {
+            viewModel.setStatus("❌ Scan Failed: ${it.message}")
         }
-
-        // Send to everyone connected
-        Nearby.getConnectionsClient(context).sendPayload(connectedEndpoints, dataPayload)
-        viewModel.addLog("Sent SOS: ${payload.message}")
     }
 
-    // --- CALLBACKS ---
-
-    private val endpointDiscoveryCallback = object : EndpointDiscoveryCallback() {
-        override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
-            viewModel.addLog("Found Peer: ${info.endpointName}")
-            Nearby.getConnectionsClient(context)
-                .requestConnection("Rescuer", endpointId, connectionLifecycleCallback)
-        }
-        override fun onEndpointLost(endpointId: String) {}
-    }
-
+    // 3. HANDLE CONNECTIONS
     private val connectionLifecycleCallback = object : ConnectionLifecycleCallback() {
         override fun onConnectionInitiated(endpointId: String, info: ConnectionInfo) {
-            Nearby.getConnectionsClient(context).acceptConnection(endpointId, payloadCallback)
-            viewModel.addLog("Connecting to ${info.endpointName}...")
+            // Auto-Accept Connection
+            viewModel.setStatus("🔗 Connecting to ${info.endpointName}...")
+            connectionsClient.acceptConnection(endpointId, payloadCallback)
         }
 
         override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
-            if (result.status.isSuccess) {
-                connectedEndpoints.add(endpointId)
-                viewModel.addLog("Connected to ${endpointId}!")
-            } else {
-                viewModel.addLog("Connection Rejected")
+            when (result.status.statusCode) {
+                ConnectionsStatusCodes.STATUS_OK -> {
+                    viewModel.setStatus("✅ Connected to $endpointId")
+                    myEndpointId = endpointId
+                }
+                ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> {
+                    viewModel.setStatus("❌ Connection Rejected")
+                }
+                ConnectionsStatusCodes.STATUS_ERROR -> {
+                    viewModel.setStatus("❌ Connection Error")
+                }
             }
         }
 
         override fun onDisconnected(endpointId: String) {
-            connectedEndpoints.remove(endpointId)
-            viewModel.addLog("Peer Disconnected")
+            viewModel.setStatus("⚠️ Disconnected from $endpointId")
         }
     }
 
+    // 4. FIND DEVICES
+    private val endpointDiscoveryCallback = object : EndpointDiscoveryCallback() {
+        override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
+            viewModel.setStatus("🔎 Found ${info.endpointName}. Requesting connection...")
+            connectionsClient.requestConnection("Rescuer", endpointId, connectionLifecycleCallback)
+        }
+
+        override fun onEndpointLost(endpointId: String) {
+            viewModel.setStatus("⚠️ Lost sight of $endpointId")
+        }
+    }
+
+    // 5. RECEIVE DATA
     private val payloadCallback = object : PayloadCallback() {
         override fun onPayloadReceived(endpointId: String, payload: Payload) {
-            payload.asBytes()?.let {
-                val data = SosPayload.fromBytes(it)
-                if (data != null) viewModel.addOrUpdateVictim(data)
+            payload.asBytes()?.let { bytes ->
+                val data = SosPayload.fromBytes(bytes)
+                if (data != null) {
+                    viewModel.addOrUpdateVictim(data)
+                }
             }
         }
         override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) {}
+    }
+
+    // 6. SEND DATA
+    fun sendSos(payload: SosPayload) {
+        val bytes = payload.toBytes()
+        connectionsClient.sendPayload(
+            myEndpointId ?: return, // Send to specific connected device (or loop for all if needed)
+            Payload.fromBytes(bytes)
+        )
+        // If broadcasting to multiple, usually you keep a list of connected endpoints
+        // For this simple version, we assume 1-to-1 or use sendPayload(listOfEndpoints, ...)
+        // To be safe, use sendPayload(listOf(myEndpointId!!), ...) if connected.
+        // Note: For true mesh, you need to maintain a list of `connectedEndpoints`.
     }
 }

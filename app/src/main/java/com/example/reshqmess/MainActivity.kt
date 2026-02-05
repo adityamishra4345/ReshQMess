@@ -5,16 +5,21 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
 import android.os.Bundle
-import android.provider.Settings
 import android.preference.PreferenceManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -23,6 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -53,16 +60,14 @@ class MainActivity : ComponentActivity() {
         Configuration.getInstance().userAgentValue = packageName
         Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
         meshManager = MeshManager(this, viewModel)
-
-        // 1. Setup GPS Client
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         setContent {
             val context = LocalContext.current
             val lifecycleOwner = LocalLifecycleOwner.current
-            var showMap by remember { mutableStateOf(false) }
 
-            // Permissions
+            var currentScreen by remember { mutableIntStateOf(0) }
+
             val permissionsState = rememberMultiplePermissionsState(
                 permissions = listOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
@@ -84,98 +89,108 @@ class MainActivity : ComponentActivity() {
                 onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
             }
 
+            // Observe Status & Data
             val victimList = viewModel.victimList.observeAsState(emptyList())
+            val chatHistory = viewModel.chatHistory.observeAsState(emptyList())
+            val connectionStatus = viewModel.connectionStatus.observeAsState("Idle") // <--- NEW OBSERVER
 
-            if (showMap) {
-                // --- MAP SCREEN ---
-                Box(modifier = Modifier.fillMaxSize()) {
-                    OsmMapView(victimList.value)
-
-                    Button(
-                        onClick = { showMap = false },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
-                        Text(" CLOSE")
+            when (currentScreen) {
+                1 -> { // MAP
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        OsmMapView(victimList.value)
+                        Button(
+                            onClick = { currentScreen = 0 },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+                        ) { Icon(Icons.Default.Close, "Close"); Text(" CLOSE") }
                     }
                 }
-            } else {
-                // --- DASHBOARD SCREEN ---
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("ReshQMess Command", style = MaterialTheme.typography.headlineMedium)
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Status Indicator
-                    Card(colors = CardDefaults.cardColors(containerColor = if (permissionsState.allPermissionsGranted) Color(0xFF4CAF50) else Color.Red)) {
-                        Text(
-                            text = if (permissionsState.allPermissionsGranted) "✅ SYSTEM READY" else "❌ PERMISSIONS MISSING",
-                            color = Color.White,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(30.dp))
-
-                    // Connection Buttons
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Button(onClick = { meshManager.startHosting("Victim-1") }, modifier = Modifier.weight(1f)) { Text("HOST") }
-                        Button(onClick = { meshManager.startDiscovery() }, modifier = Modifier.weight(1f)) { Text("SCAN") }
-                    }
-
-                    Spacer(modifier = Modifier.height(30.dp))
-
-                    // 2. THE NEW "REAL GPS" SOS BUTTON
-                    Button(
-                        onClick = {
-                            if (permissionsState.allPermissionsGranted) {
-                                Toast.makeText(context, "Getting GPS...", Toast.LENGTH_SHORT).show()
-
-                                // Get Real Location
-                                try {
-                                    fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-                                        .addOnSuccessListener { location: Location? ->
-                                            if (location != null) {
-                                                // Success! Send Real Data
-                                                val sos = SosPayload(
-                                                    victimName = "Me",
-                                                    lat = location.latitude,
-                                                    lng = location.longitude,
-                                                    message = "HELP! (Real GPS)",
-                                                    type = "CRITICAL"
-                                                )
-                                                meshManager.sendSos(sos)
-                                                Toast.makeText(context, "SOS Sent at: ${location.latitude}", Toast.LENGTH_LONG).show()
-                                            } else {
-                                                Toast.makeText(context, "Error: GPS Signal Lost", Toast.LENGTH_LONG).show()
-                                            }
-                                        }
-                                } catch (e: SecurityException) {
-                                    Toast.makeText(context, "Permission Error", Toast.LENGTH_SHORT).show()
-                                }
-                            } else {
-                                Toast.makeText(context, "Grant Permissions first!", Toast.LENGTH_SHORT).show()
-                            }
+                2 -> { // CHAT
+                    ChatScreen(
+                        messages = chatHistory.value,
+                        status = connectionStatus.value, // Pass status to chat too
+                        onSend = { text ->
+                            val chatPayload = SosPayload("Me", 0.0, 0.0, text, "CHAT")
+                            meshManager.sendSos(chatPayload)
+                            viewModel.addOrUpdateVictim(chatPayload)
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        modifier = Modifier.fillMaxWidth().height(60.dp)
+                        onClose = { currentScreen = 0 }
+                    )
+                }
+                else -> { // DASHBOARD
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text("SEND REAL SOS (GPS)", style = MaterialTheme.typography.titleLarge)
-                    }
+                        Text("ReshQMess Command", style = MaterialTheme.typography.headlineMedium)
 
-                    Spacer(modifier = Modifier.height(30.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                    Button(
-                        onClick = { showMap = true },
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Blue)
-                    ) {
-                        Icon(Icons.Default.LocationOn, contentDescription = null)
-                        Text(" OPEN NAVIGATOR")
+                        // --- NEW: CONNECTION STATUS BAR ---
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)), // Light Blue
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+                        ) {
+                            Text(
+                                text = "STATUS: ${connectionStatus.value}",
+                                modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                                color = Color(0xFF0D47A1),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        // ----------------------------------
+
+                        Card(colors = CardDefaults.cardColors(containerColor = if (permissionsState.allPermissionsGranted) Color(0xFF4CAF50) else Color.Red)) {
+                            Text(if (permissionsState.allPermissionsGranted) "✅ PERMISSIONS READY" else "❌ PERMISSIONS MISSING", color = Color.White, modifier = Modifier.padding(16.dp))
+                        }
+
+                        Spacer(modifier = Modifier.height(30.dp))
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Button(onClick = { meshManager.startHosting("Victim-1") }, modifier = Modifier.weight(1f)) { Text("HOST") }
+                            Button(onClick = { meshManager.startDiscovery() }, modifier = Modifier.weight(1f)) { Text("SCAN") }
+                        }
+
+                        Spacer(modifier = Modifier.height(30.dp))
+
+                        Button(
+                            onClick = {
+                                if (permissionsState.allPermissionsGranted) {
+                                    Toast.makeText(context, "Getting GPS...", Toast.LENGTH_SHORT).show()
+                                    try {
+                                        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                                            .addOnSuccessListener { location: Location? ->
+                                                if (location != null) {
+                                                    val sos = SosPayload("Me", location.latitude, location.longitude, "HELP! (GPS)", "CRITICAL")
+                                                    meshManager.sendSos(sos)
+                                                    viewModel.addOrUpdateVictim(sos)
+                                                    Toast.makeText(context, "SOS Sent!", Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+                                    } catch (e: SecurityException) {}
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                            modifier = Modifier.fillMaxWidth().height(60.dp)
+                        ) { Text("SEND SOS (GPS)", style = MaterialTheme.typography.titleLarge) }
+
+                        Spacer(modifier = Modifier.height(30.dp))
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Button(
+                                onClick = { currentScreen = 1 },
+                                modifier = Modifier.weight(1f).height(60.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Blue)
+                            ) { Icon(Icons.Default.LocationOn, null); Text(" MAP") }
+
+                            Button(
+                                onClick = { currentScreen = 2 },
+                                modifier = Modifier.weight(1f).height(60.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF673AB7))
+                            ) { Icon(Icons.Default.Email, null); Text(" CHAT") }
+                        }
                     }
                 }
             }
@@ -183,7 +198,72 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// (Map code remains exactly the same as before)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatScreen(messages: List<SosPayload>, status: String, onSend: (String) -> Unit, onClose: () -> Unit) {
+    var textState by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF0F0F0))) {
+        // Chat Header
+        Column(modifier = Modifier.fillMaxWidth().background(Color(0xFF673AB7))) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Emergency Chat", color = Color.White, style = MaterialTheme.typography.titleLarge)
+                IconButton(onClick = onClose) { Icon(Icons.Default.Close, "Close", tint = Color.White) }
+            }
+            // Status in Chat
+            Text(
+                text = "Network: $status",
+                color = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
+
+        LazyColumn(
+            modifier = Modifier.weight(1f).padding(8.dp),
+            reverseLayout = true
+        ) {
+            items(messages.reversed()) { msg ->
+                val isMe = msg.victimName == "Me"
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
+                ) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = if (isMe) Color(0xFFD1C4E9) else Color.White),
+                        modifier = Modifier.padding(4.dp).widthIn(max = 250.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Text(msg.victimName, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                            Text(msg.message, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+        }
+
+        Row(modifier = Modifier.padding(8.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            TextField(
+                value = textState,
+                onValueChange = { textState = it },
+                placeholder = { Text("Type message...") },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(24.dp),
+                colors = TextFieldDefaults.colors(focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            FloatingActionButton(onClick = { if (textState.isNotBlank()) { onSend(textState); textState = "" } }, containerColor = Color(0xFF673AB7)) {
+                Icon(Icons.Default.Send, "Send", tint = Color.White)
+            }
+        }
+    }
+}
+
+// (Keep OsmMapView same as before, no changes needed there)
 @Composable
 fun OsmMapView(victims: List<SosPayload>) {
     val context = LocalContext.current
@@ -195,14 +275,12 @@ fun OsmMapView(victims: List<SosPayload>) {
             controller.setCenter(GeoPoint(26.1445, 91.7362))
         }
     }
-
     val myLocationOverlay = remember {
         MyLocationNewOverlay(GpsMyLocationProvider(context), mapView).apply {
             enableMyLocation()
             enableFollowLocation()
         }
     }
-
     AndroidView(factory = {
         if (!mapView.overlays.contains(myLocationOverlay)) mapView.overlays.add(myLocationOverlay)
         mapView
@@ -210,31 +288,22 @@ fun OsmMapView(victims: List<SosPayload>) {
         val staticOverlays = map.overlays.filterIsInstance<MyLocationNewOverlay>()
         map.overlays.clear()
         map.overlays.addAll(staticOverlays)
-
         val myPos = myLocationOverlay.myLocation
-
         for (victim in victims) {
+            if (victim.type == "CHAT") continue
             val victimPos = GeoPoint(victim.lat, victim.lng)
-
             val marker = Marker(map)
             marker.position = victimPos
             marker.title = victim.victimName
             marker.subDescription = victim.message
             marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
             map.overlays.add(marker)
-
             if (myPos != null) {
                 val line = Polyline()
                 line.addPoint(myPos)
                 line.addPoint(victimPos)
                 line.color = android.graphics.Color.RED
                 line.width = 5.0f
-                val dist = myPos.distanceToAsDouble(victimPos).toInt()
-                line.title = "$dist meters"
-                line.setOnClickListener { _, _, _ ->
-                    Toast.makeText(context, "$dist meters", Toast.LENGTH_SHORT).show()
-                    true
-                }
                 map.overlays.add(line)
             }
         }

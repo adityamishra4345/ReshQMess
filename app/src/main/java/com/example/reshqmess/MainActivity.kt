@@ -1,4 +1,7 @@
+@file:OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
 package com.example.reshqmess
+
+
 
 import android.Manifest
 import android.content.BroadcastReceiver
@@ -9,10 +12,14 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.camera.core.*
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -45,6 +52,9 @@ import com.google.accompanist.permissions.*
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -53,6 +63,7 @@ import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import java.util.concurrent.Executors
 
 // --- 🏛️ PROFESSIONAL COLOR SYSTEM ---
 val ProPrimary = Color(0xFF2563EB)
@@ -107,7 +118,6 @@ class MainActivity : ComponentActivity() {
         Toast.makeText(this, "🚨 AUTO-CONNECT BEACON ACTIVE", Toast.LENGTH_LONG).show()
     }
 
-    @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -154,7 +164,8 @@ class MainActivity : ComponentActivity() {
                         Manifest.permission.NEARBY_WIFI_DEVICES,
                         Manifest.permission.INTERNET,
                         Manifest.permission.ACCESS_NETWORK_STATE,
-                        Manifest.permission.RECORD_AUDIO
+                        Manifest.permission.RECORD_AUDIO,
+                        Manifest.permission.CAMERA // Added Camera Permission
                     )
                 )
 
@@ -202,6 +213,15 @@ class MainActivity : ComponentActivity() {
                                         } else {
                                             permissionsState.launchMultiplePermissionRequest()
                                         }
+                                    },
+                                    onScanMeds = {
+                                        // CHECK CAMERA PERMISSION BEFORE OPENING
+                                        if (permissionsState.permissions.find { it.permission == Manifest.permission.CAMERA }?.status?.isGranted == true) {
+                                            currentScreen = 3 // Open Scanner Screen
+                                        } else {
+                                            Toast.makeText(context, "Camera permission required.", Toast.LENGTH_SHORT).show()
+                                            permissionsState.launchMultiplePermissionRequest()
+                                        }
                                     }
                                 )
                                 1 -> MapScreen(victimList.value, myDeviceName)
@@ -218,6 +238,7 @@ class MainActivity : ComponentActivity() {
                                         meshManager.sendSos(audioPayload)
                                     }
                                 )
+                                3 -> MedScannerScreen(onClose = { currentScreen = 0 }) // THE NEW SCANNER SCREEN
                             }
                         }
                     }
@@ -243,7 +264,7 @@ fun ProNavBar(current: Int, onSelect: (Int) -> Unit) {
         NavigationBarItem(
             icon = { Icon(Icons.Default.Dashboard, null) },
             label = { Text("Command", fontWeight = FontWeight.Medium) },
-            selected = current == 0,
+            selected = current == 0 || current == 3, // Keep Dashboard active when scanning
             onClick = { onSelect(0) },
             colors = NavigationBarItemDefaults.colors(selectedIconColor = ProPrimary, indicatorColor = ProPrimary.copy(alpha = 0.1f))
         )
@@ -272,7 +293,8 @@ fun ProDashboard(
     onHost: () -> Unit,
     onScan: () -> Unit,
     onStop: () -> Unit,
-    onSos: () -> Unit
+    onSos: () -> Unit,
+    onScanMeds: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -315,6 +337,7 @@ fun ProDashboard(
         Text("COMMANDS", style = MaterialTheme.typography.labelSmall, color = ProTextSub, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Row 1: Network Controls
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ProCommandCard(
                 title = "Broadcast",
@@ -330,6 +353,21 @@ fun ProDashboard(
                 modifier = Modifier.weight(1f),
                 onClick = onScan
             )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Row 2: Offline Tools
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ProCommandCard(
+                title = "Scan Meds",
+                icon = Icons.Default.CameraAlt,
+                color = ProSuccess,
+                modifier = Modifier.weight(1f),
+                onClick = onScanMeds
+            )
+            // Empty spacer to keep the grid perfectly balanced
+            Spacer(modifier = Modifier.weight(1f))
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -445,13 +483,11 @@ fun ProChat(myName: String, messages: List<SosPayload>, onSend: (String) -> Unit
             }
         }
 
-        // The isolated input area prevents the cursor bug
         ChatInputArea(onSend = onSend, onAudio = onAudio)
     }
 }
 
-// --- ISOLATED INPUT COMPOSABLE (TAP TO TOGGLE AUDIO) ---
-@OptIn(ExperimentalMaterial3Api::class)
+@androidx.annotation.OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatInputArea(onSend: (String) -> Unit, onAudio: (ByteArray) -> Unit) {
     var textState by remember { mutableStateOf("") }
@@ -477,7 +513,6 @@ fun ChatInputArea(onSend: (String) -> Unit, onAudio: (ByteArray) -> Unit) {
             Spacer(modifier = Modifier.width(8.dp))
 
             if (textState.isNotBlank()) {
-                // Send Text Button
                 IconButton(
                     onClick = { onSend(textState); textState = "" },
                     modifier = Modifier.background(ProPrimary, CircleShape).size(48.dp)
@@ -485,15 +520,12 @@ fun ChatInputArea(onSend: (String) -> Unit, onAudio: (ByteArray) -> Unit) {
                     Icon(Icons.Default.Send, null, tint = Color.White)
                 }
             } else {
-                // Audio Toggle Button (Tap to Start, Tap to Stop)
                 IconButton(
                     onClick = {
                         if (isRecording) {
-                            // Turn Off Call
                             isRecording = false
                             audioHelper.stopStreaming()
                         } else {
-                            // Turn On Call
                             isRecording = true
                             audioHelper.startStreaming { chunk -> onAudio(chunk) }
                         }
@@ -591,4 +623,178 @@ fun MapScreen(victims: List<SosPayload>, myName: String) {
             }
         )
     }
+}
+
+// --- 📷 OFFLINE MEDICINE SCANNER (Advanced Fuzzy Matching) ---
+@androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
+@Composable
+fun MedScannerScreen(onClose: () -> Unit) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Upgraded Dictionary: Includes Generic, Indian Brands, and L-Hist Mont
+    val disasterMeds = mapOf(
+        "AMOXICILLIN" to "Antibiotic. Treats bacterial infections. Do NOT use for viruses.",
+        "AUGMENTIN" to "Antibiotic (Amoxicillin/Clavulanate). Treats severe bacterial infections.",
+        "IBUPROFEN" to "Pain/Fever reducer. Reduces inflammation. Take with food.",
+        "PARACETAMOL" to "Pain/Fever reducer. Safe for mild to moderate pain.",
+        "DOLO" to "Pain/Fever reducer (Paracetamol 650mg). Do not exceed 4 tablets a day.",
+        "CROCIN" to "Pain/Fever reducer (Paracetamol). Safe for mild to moderate pain.",
+        "CALPOL" to "Pain/Fever reducer (Paracetamol). Often given to children.",
+        "LOPERAMIDE" to "Anti-diarrheal. Controls acute diarrhea. Stay hydrated!",
+        "AZITHROMYCIN" to "Antibiotic. Often used for respiratory/throat infections.",
+        "ASPIRIN" to "Pain reliever / Blood thinner. Can be chewed during a suspected heart attack.",
+        "CETIRIZINE" to "Antihistamine. Treats allergic reactions and hives.",
+        "OFLOXACIN" to "Antibiotic. Often used for severe bacterial diarrhea or UTIs.",
+        "PANTOPRAZOLE" to "Antacid. Reduces stomach acid. Used for severe acidity/ulcers.",
+        "DIGENE" to "Antacid. Chewable tablet for fast relief from gas and acidity.",
+
+        // Added specifically for the photo you shared
+        "LHIST" to "Allergy & Asthma Relief. Treats severe allergies, sneezing, and prevents asthma attacks. (Levocetirizine + Montelukast)",
+        "LEVOCETIRIZINE" to "Antihistamine. Treats allergic reactions, runny nose, and hives. May cause drowsiness.",
+        "MONTELUKAST" to "Anti-asthmatic. Prevents asthma attacks and treats severe allergies."
+    )
+
+    var foundMedName by remember { mutableStateOf<String?>(null) }
+    var foundMedDesc by remember { mutableStateOf<String?>(null) }
+    var liveScannedText by remember { mutableStateOf("Initializing Scanner...") }
+
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        AndroidView(
+            factory = { ctx ->
+                val previewView = PreviewView(ctx)
+                val cameraExecutor = Executors.newSingleThreadExecutor()
+                val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+
+                cameraProviderFuture.addListener({
+                    val cameraProvider = cameraProviderFuture.get()
+                    val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
+
+                    val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+                    val imageAnalyzer = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
+                        .also { analysis ->
+                            analysis.setAnalyzer(cameraExecutor) { imageProxy ->
+                                val mediaImage = imageProxy.image
+                                if (mediaImage != null) {
+                                    val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                                    recognizer.process(image)
+                                        .addOnSuccessListener { visionText ->
+                                            val scannedText = visionText.text.uppercase()
+
+                                            // Update UI with what it actually sees
+                                            if (scannedText.isNotBlank()) {
+                                                liveScannedText = "Seeing: " + scannedText.take(40).replace("\n", " ") + "..."
+                                            }
+
+                                            // THE MAGIC: Fuzzy Searching the garbage text
+                                            for ((medName, description) in disasterMeds) {
+                                                if (scannedText.contains(medName) || fuzzyMatch(scannedText, medName)) {
+                                                    foundMedName = medName
+                                                    foundMedDesc = description
+                                                    break
+                                                }
+                                            }
+                                        }
+                                        .addOnFailureListener { e -> Log.e("MLKit", "Text recognition failed", e) }
+                                        .addOnCompleteListener { imageProxy.close() }
+                                } else {
+                                    imageProxy.close()
+                                }
+                            }
+                        }
+
+                    try {
+                        cameraProvider.unbindAll()
+                        cameraProvider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageAnalyzer)
+                    } catch (e: Exception) {
+                        Log.e("CameraX", "Binding failed", e)
+                    }
+                }, ContextCompat.getMainExecutor(ctx))
+
+                previewView
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Close Button
+        IconButton(onClick = onClose, modifier = Modifier.padding(16.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape).align(Alignment.TopStart)) {
+            Icon(Icons.Default.Close, "Close Scanner", tint = Color.White)
+        }
+
+        // Live Text Debugger
+        Surface(color = Color.Black.copy(alpha = 0.6f), shape = RoundedCornerShape(12.dp), modifier = Modifier.align(Alignment.TopCenter).padding(top = 24.dp).widthIn(max = 250.dp)) {
+            Text(text = liveScannedText, color = Color.Green, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+        }
+
+        // Target UI
+        Box(modifier = Modifier.size(300.dp, 120.dp).align(Alignment.Center)) {
+            // Draws a subtle white box to guide the user's camera
+            Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp)))
+            Text("Center Medicine Name Here", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp))
+        }
+
+        // Result Card
+        if (foundMedName != null) {
+            Card(modifier = Modifier.fillMaxWidth().padding(16.dp).align(Alignment.BottomCenter), colors = CardDefaults.cardColors(containerColor = ProSuccess), elevation = CardDefaults.cardElevation(8.dp), shape = RoundedCornerShape(16.dp)) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.MedicalServices, null, tint = Color.White, modifier = Modifier.size(28.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(foundMedName!!, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(foundMedDesc!!, style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { foundMedName = null }, colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = ProSuccess), modifier = Modifier.fillMaxWidth()) {
+                        Text("Scan Another", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// --- 🧠 LEVENSHTEIN DISTANCE ALGORITHM (Fuzzy Matching) ---
+// This separates the actual name from the manufacturing noise and allows for 1 or 2 letter typos!
+fun fuzzyMatch(scannedText: String, target: String): Boolean {
+    // 1. Clean the text (remove brackets, numbers, special chars, leave only uppercase letters)
+    val cleanedText = scannedText.replace(Regex("[^A-Z\\s]"), "")
+
+    // 2. Split the giant block of text into individual words
+    val words = cleanedText.split(Regex("\\s+")).filter { it.length >= target.length - 2 }
+
+    // 3. Set how many "typos" we will accept (e.g. DOLO allows 1 typo, PARACETAMOL allows 2)
+    val maxTyposAllowed = if (target.length <= 5) 1 else 2
+
+    // 4. Check every word on the medicine strip against our target
+    for (word in words) {
+        if (levenshtein(word, target) <= maxTyposAllowed) {
+            return true
+        }
+    }
+    return false
+}
+
+// Calculates the exact number of edits required to turn String A into String B
+fun levenshtein(lhs: CharSequence, rhs: CharSequence): Int {
+    val lhsLength = lhs.length
+    val rhsLength = rhs.length
+
+    var cost = IntArray(lhsLength + 1) { it }
+    var newCost = IntArray(lhsLength + 1)
+
+    for (i in 1..rhsLength) {
+        newCost[0] = i
+        for (j in 1..lhsLength) {
+            val match = if (lhs[j - 1] == rhs[i - 1]) 0 else 1
+            val costReplace = cost[j - 1] + match
+            val costInsert = cost[j] + 1
+            val costDelete = newCost[j - 1] + 1
+            newCost[j] = minOf(costInsert, costDelete, costReplace)
+        }
+        val swap = cost; cost = newCost; newCost = swap
+    }
+    return cost[lhsLength]
 }

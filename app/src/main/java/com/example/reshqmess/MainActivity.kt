@@ -1,8 +1,12 @@
 package com.example.reshqmess
 
 import android.Manifest
-import androidx.compose.material.icons.filled.* // DELETE references to "rounded.emergency_share" or "rounded.radar"
-import android.location.Location
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.widget.Toast
@@ -11,7 +15,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,22 +28,21 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.example.reshqmess.mesh.MeshManager
 import com.example.reshqmess.model.SosPayload
 import com.example.reshqmess.viewmodel.DisasterViewModel
 import com.google.accompanist.permissions.*
+import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import org.osmdroid.config.Configuration
@@ -53,17 +55,57 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 // --- 🏛️ PROFESSIONAL COLOR SYSTEM ---
-val ProPrimary = Color(0xFF2563EB) // Royal Blue (Trust)
-val ProSurface = Color(0xFFF3F4F6) // Cool Grey (Background)
-val ProCard = Color(0xFFFFFFFF)    // Pure White
-val ProAlert = Color(0xFFDC2626)   // Signal Red
-val ProSuccess = Color(0xFF059669) // Emerald Green
-val ProTextMain = Color(0xFF111827) // Almost Black
-val ProTextSub = Color(0xFF6B7280)  // Grey Text
+val ProPrimary = Color(0xFF2563EB)
+val ProSurface = Color(0xFFF3F4F6)
+val ProCard = Color(0xFFFFFFFF)
+val ProAlert = Color(0xFFDC2626)
+val ProSuccess = Color(0xFF059669)
+val ProTextMain = Color(0xFF111827)
+val ProTextSub = Color(0xFF6B7280)
 
 class MainActivity : ComponentActivity() {
     private val viewModel by viewModels<DisasterViewModel>()
     private lateinit var meshManager: MeshManager
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+    private val myDeviceName = "Unit-${(100..999).random()}"
+
+    // --- 🚨 LOCK-SCREEN SOS RECEIVER (BACKGROUND GPS) ---
+    private val sosReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "com.example.reshqmess.SOS_TRIGGERED") {
+                if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+
+                    fusedLocationClient.lastLocation
+                        .addOnSuccessListener { loc ->
+                            val lat = loc?.latitude ?: 0.0
+                            val lng = loc?.longitude ?: 0.0
+                            triggerBackgroundSos(lat, lng)
+                        }
+                        .addOnFailureListener {
+                            triggerBackgroundSos(0.0, 0.0)
+                        }
+                } else {
+                    triggerBackgroundSos(0.0, 0.0)
+                }
+            }
+        }
+    }
+
+    private fun triggerBackgroundSos(lat: Double, lng: Double) {
+        val criticalSos = SosPayload(
+            victimName = myDeviceName,
+            lat = lat,
+            lng = lng,
+            message = "HELP! (Emergency Auto-Connect Triggered)",
+            type = "CRITICAL"
+        )
+        // Auto-Connect & Queue the SOS
+        meshManager.triggerEmergencyBroadcast(myDeviceName, criticalSos)
+        viewModel.addOrUpdateVictim(criticalSos)
+        viewModel.setStatus("🚨 Radios Active: Searching for Rescuers...")
+        Toast.makeText(this, "🚨 AUTO-CONNECT BEACON ACTIVE", Toast.LENGTH_LONG).show()
+    }
 
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,12 +113,25 @@ class MainActivity : ComponentActivity() {
 
         Configuration.getInstance().userAgentValue = packageName
         Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
+
         meshManager = MeshManager(this, viewModel)
-        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        val serviceIntent = Intent(this, EmergencyService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
+
+        val filter = IntentFilter("com.example.reshqmess.SOS_TRIGGERED")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(sosReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(sosReceiver, filter)
+        }
 
         setContent {
-            val myDeviceName = remember { "Unit-${(100..999).random()}" }
-
             MaterialTheme(
                 colorScheme = lightColorScheme(
                     primary = ProPrimary,
@@ -98,7 +153,8 @@ class MainActivity : ComponentActivity() {
                         Manifest.permission.BLUETOOTH_CONNECT,
                         Manifest.permission.NEARBY_WIFI_DEVICES,
                         Manifest.permission.INTERNET,
-                        Manifest.permission.ACCESS_NETWORK_STATE
+                        Manifest.permission.ACCESS_NETWORK_STATE,
+                        Manifest.permission.RECORD_AUDIO
                     )
                 )
 
@@ -133,31 +189,47 @@ class MainActivity : ComponentActivity() {
                                             try {
                                                 fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
                                                     .addOnSuccessListener { loc ->
-                                                        if (loc != null) {
-                                                            val sos = SosPayload(myDeviceName, loc.latitude, loc.longitude, "HELP! (GPS)", "CRITICAL")
-                                                            meshManager.sendSos(sos)
-                                                            viewModel.addOrUpdateVictim(sos)
-                                                            Toast.makeText(context, "🚨 EMERGENCY BEACON ACTIVE", Toast.LENGTH_LONG).show()
-                                                        }
+                                                        val lat = loc?.latitude ?: 0.0
+                                                        val lng = loc?.longitude ?: 0.0
+                                                        val sos = SosPayload(myDeviceName, lat, lng, "HELP! (Dashboard)", "CRITICAL")
+                                                        meshManager.sendSos(sos)
+                                                        viewModel.addOrUpdateVictim(sos)
+                                                        Toast.makeText(context, "🚨 EMERGENCY BEACON ACTIVE", Toast.LENGTH_LONG).show()
                                                     }
-                                            } catch (e: SecurityException) {}
+                                            } catch (e: SecurityException) {
+                                                Toast.makeText(context, "Location Error", Toast.LENGTH_SHORT).show()
+                                            }
                                         } else {
                                             permissionsState.launchMultiplePermissionRequest()
                                         }
                                     }
                                 )
                                 1 -> MapScreen(victimList.value, myDeviceName)
-                                2 -> ProChat(myDeviceName, chatHistory.value) { text ->
-                                    val chat = SosPayload(myDeviceName, 0.0, 0.0, text, "CHAT")
-                                    meshManager.sendSos(chat)
-                                    viewModel.addOrUpdateVictim(chat)
-                                }
+                                2 -> ProChat(
+                                    myName = myDeviceName,
+                                    messages = chatHistory.value,
+                                    onSend = { text ->
+                                        val chat = SosPayload(myDeviceName, 0.0, 0.0, text, "CHAT")
+                                        meshManager.sendSos(chat)
+                                        viewModel.addOrUpdateVictim(chat)
+                                    },
+                                    onAudio = { audioBytes ->
+                                        val audioPayload = SosPayload(myDeviceName, 0.0, 0.0, "[Live Audio Broadcast]", "AUDIO", audioData = audioBytes)
+                                        meshManager.sendSos(audioPayload)
+                                    }
+                                )
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(sosReceiver)
+        meshManager.stopAll()
     }
 }
 
@@ -203,7 +275,6 @@ fun ProDashboard(
     onSos: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-        // 1. Header
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(ProPrimary),
@@ -219,8 +290,6 @@ fun ProDashboard(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        // 2. Status Monitor
         Text("SYSTEM STATUS", style = MaterialTheme.typography.labelSmall, color = ProTextSub, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -231,8 +300,7 @@ fun ProDashboard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                // Status Dot
-                val dotColor = if (status.contains("Connected")) ProSuccess else if (status.contains("Scanning")) Color(0xFFF59E0B) else Color.Gray
+                val dotColor = if (status.contains("Connected")) ProSuccess else if (status.contains("Scanning") || status.contains("Host")) Color(0xFFF59E0B) else Color.Gray
                 Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(dotColor))
 
                 Spacer(modifier = Modifier.width(16.dp))
@@ -244,13 +312,10 @@ fun ProDashboard(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        // 3. Command Grid
         Text("COMMANDS", style = MaterialTheme.typography.labelSmall, color = ProTextSub, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Host Button
             ProCommandCard(
                 title = "Broadcast",
                 icon = Icons.Default.WifiTethering,
@@ -258,11 +323,10 @@ fun ProDashboard(
                 modifier = Modifier.weight(1f),
                 onClick = onHost
             )
-            // Scan Button
             ProCommandCard(
                 title = "Search Area",
                 icon = Icons.Default.Radar,
-                color = Color(0xFF7C3AED), // Violet
+                color = Color(0xFF7C3AED),
                 modifier = Modifier.weight(1f),
                 onClick = onScan
             )
@@ -270,7 +334,6 @@ fun ProDashboard(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Stop Button
         OutlinedButton(
             onClick = onStop,
             modifier = Modifier.fillMaxWidth(),
@@ -284,7 +347,6 @@ fun ProDashboard(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // 4. SOS Trigger
         Button(
             onClick = onSos,
             modifier = Modifier.fillMaxWidth().height(72.dp),
@@ -330,14 +392,10 @@ fun ProCommandCard(title: String, icon: ImageVector, color: Color, modifier: Mod
     }
 }
 
-// --- 💬 CHAT ---
-@OptIn(ExperimentalMaterial3Api::class)
+// --- 💬 CHAT & LIVE AUDIO ---
 @Composable
-fun ProChat(myName: String, messages: List<SosPayload>, onSend: (String) -> Unit) {
-    var textState by remember { mutableStateOf("") }
-
+fun ProChat(myName: String, messages: List<SosPayload>, onSend: (String) -> Unit, onAudio: (ByteArray) -> Unit) {
     Column(modifier = Modifier.fillMaxSize().background(ProSurface)) {
-        // Chat Header
         Surface(shadowElevation = 2.dp, color = ProCard) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -351,7 +409,6 @@ fun ProChat(myName: String, messages: List<SosPayload>, onSend: (String) -> Unit
             }
         }
 
-        // Message List
         LazyColumn(
             modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
             reverseLayout = true,
@@ -388,74 +445,150 @@ fun ProChat(myName: String, messages: List<SosPayload>, onSend: (String) -> Unit
             }
         }
 
-        // Input Area
-        Surface(color = ProCard, tonalElevation = 4.dp) {
-            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                TextField(
-                    value = textState,
-                    onValueChange = { textState = it },
-                    placeholder = { Text("Enter message...") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = ProSurface,
-                        unfocusedContainerColor = ProSurface,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+        // The isolated input area prevents the cursor bug
+        ChatInputArea(onSend = onSend, onAudio = onAudio)
+    }
+}
+
+// --- ISOLATED INPUT COMPOSABLE (TAP TO TOGGLE AUDIO) ---
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatInputArea(onSend: (String) -> Unit, onAudio: (ByteArray) -> Unit) {
+    var textState by remember { mutableStateOf("") }
+    var isRecording by remember { mutableStateOf(false) }
+    val audioHelper = remember { AudioHelper() }
+
+    Surface(color = ProCard, tonalElevation = 4.dp) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextField(
+                value = textState,
+                onValueChange = { textState = it },
+                placeholder = { Text("Enter message...") },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(24.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = ProSurface,
+                    unfocusedContainerColor = ProSurface,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+
+            if (textState.isNotBlank()) {
+                // Send Text Button
                 IconButton(
-                    onClick = { if (textState.isNotBlank()) { onSend(textState); textState = "" } },
+                    onClick = { onSend(textState); textState = "" },
                     modifier = Modifier.background(ProPrimary, CircleShape).size(48.dp)
                 ) {
-                    Icon(Icons.Default.ArrowUpward, null, tint = Color.White)
+                    Icon(Icons.Default.Send, null, tint = Color.White)
+                }
+            } else {
+                // Audio Toggle Button (Tap to Start, Tap to Stop)
+                IconButton(
+                    onClick = {
+                        if (isRecording) {
+                            // Turn Off Call
+                            isRecording = false
+                            audioHelper.stopStreaming()
+                        } else {
+                            // Turn On Call
+                            isRecording = true
+                            audioHelper.startStreaming { chunk -> onAudio(chunk) }
+                        }
+                    },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(if (isRecording) ProAlert else ProSuccess, CircleShape)
+                ) {
+                    Icon(
+                        if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
                 }
             }
         }
     }
 }
 
-// --- 🗺️ MAP (Standard) ---
+// --- 🗺️ MAP (Advanced Auto-Zoom & Vector Path) ---
 @Composable
 fun MapScreen(victims: List<SosPayload>, myName: String) {
     val context = LocalContext.current
-    Box(modifier = Modifier.fillMaxSize()) {
-        AndroidView(factory = {
-            MapView(context).apply {
-                setTileSource(TileSourceFactory.MAPNIK)
-                setMultiTouchControls(true)
-                controller.setZoom(17.0)
-                controller.setCenter(GeoPoint(26.1445, 91.7362))
-                val myLoc = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
-                myLoc.enableMyLocation()
-                myLoc.enableFollowLocation()
-                overlays.add(myLoc)
-            }
-        }, update = { map ->
-            val myLoc = map.overlays.firstOrNull { it is MyLocationNewOverlay }
-            map.overlays.clear()
-            if (myLoc != null) map.overlays.add(myLoc)
-            val myPos = (myLoc as? MyLocationNewOverlay)?.myLocation
 
-            for (victim in victims) {
-                if (victim.type == "CHAT" || victim.victimName == myName) continue
-                val pos = GeoPoint(victim.lat, victim.lng)
-                val marker = Marker(map)
-                marker.position = pos
-                marker.title = victim.victimName
-                marker.subDescription = victim.message
-                marker.icon = androidx.core.content.ContextCompat.getDrawable(context, org.osmdroid.library.R.drawable.marker_default)
-                map.overlays.add(marker)
-                if (myPos != null) {
-                    val line = Polyline()
-                    line.addPoint(myPos); line.addPoint(pos)
-                    line.color = android.graphics.Color.RED; line.width = 5.0f
-                    map.overlays.add(line)
+    val mapView = remember {
+        MapView(context).apply {
+            setTileSource(TileSourceFactory.MAPNIK)
+            setMultiTouchControls(true)
+            zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.ALWAYS)
+            controller.setZoom(15.0)
+            controller.setCenter(GeoPoint(26.1445, 91.7362))
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AndroidView(
+            factory = { mapView },
+            update = { map ->
+                var myLocationOverlay = map.overlays.firstOrNull { it is MyLocationNewOverlay } as? MyLocationNewOverlay
+                if (myLocationOverlay == null) {
+                    myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), map)
+                    myLocationOverlay.enableMyLocation()
+                    myLocationOverlay.enableFollowLocation()
+                    map.overlays.add(myLocationOverlay)
                 }
+
+                map.overlays.clear()
+                map.overlays.add(myLocationOverlay)
+
+                val myPos = myLocationOverlay.myLocation
+                val pointsToFit = mutableListOf<GeoPoint>()
+
+                if (myPos != null) pointsToFit.add(myPos)
+
+                for (victim in victims) {
+                    if (victim.type == "CHAT" || victim.victimName == myName || victim.lat == 0.0) continue
+
+                    val victimPos = GeoPoint(victim.lat, victim.lng)
+                    pointsToFit.add(victimPos)
+
+                    val marker = Marker(map)
+                    marker.position = victimPos
+                    marker.title = victim.victimName
+                    marker.subDescription = "SOS: ${victim.message}"
+                    marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                    marker.icon = ContextCompat.getDrawable(context, org.osmdroid.library.R.drawable.marker_default)
+                    map.overlays.add(marker)
+
+                    if (myPos != null) {
+                        val pathLine = Polyline()
+                        pathLine.addPoint(myPos)
+                        pathLine.addPoint(victimPos)
+                        pathLine.outlinePaint.color = android.graphics.Color.RED
+                        pathLine.outlinePaint.strokeWidth = 8f
+                        map.overlays.add(pathLine)
+                    }
+                }
+
+                if (pointsToFit.size >= 2) {
+                    val box = org.osmdroid.util.BoundingBox.fromGeoPoints(pointsToFit)
+                    val latPadding = if (box.latitudeSpan > 0) box.latitudeSpan * 0.2 else 0.005
+                    val lonPadding = if (box.longitudeSpan > 0) box.longitudeSpan * 0.2 else 0.005
+
+                    val paddedBox = org.osmdroid.util.BoundingBox(
+                        box.latNorth + latPadding,
+                        box.lonEast + lonPadding,
+                        box.latSouth - latPadding,
+                        box.lonWest - lonPadding
+                    )
+
+                    map.zoomToBoundingBox(paddedBox, true)
+                }
+
+                map.invalidate()
             }
-            map.invalidate()
-        })
+        )
     }
 }

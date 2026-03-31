@@ -42,6 +42,18 @@ android {
 }
 
 dependencies {
+    dependencies {
+        // ... (your existing dependencies) ...
+
+        // CameraX for the scanning UI
+        val camerax_version = "1.3.1"
+        implementation("androidx.camera:camera-camera2:$camerax_version")
+        implementation("androidx.camera:camera-lifecycle:$camerax_version")
+        implementation("androidx.camera:camera-view:$camerax_version")
+
+        // Google ML Kit for Offline Text Recognition
+        implementation("com.google.mlkit:text-recognition:16.0.0")
+    }
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

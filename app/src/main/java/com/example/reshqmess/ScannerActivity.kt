@@ -46,6 +46,11 @@ class ScannerActivity : AppCompatActivity() {
         viewFinder = findViewById(R.id.viewFinder)
         resultTextView = findViewById(R.id.resultTextView)
         cameraExecutor = Executors.newSingleThreadExecutor()
+        // Setup the Close Button
+        val btnClose = findViewById<android.widget.Button>(R.id.btnClose)
+        btnClose.setOnClickListener {
+            finish() // This command destroys the camera screen and goes back
+        }
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startCamera()

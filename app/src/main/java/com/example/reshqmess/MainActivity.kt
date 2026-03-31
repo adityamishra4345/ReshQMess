@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -116,7 +117,17 @@ class MainActivity : ComponentActivity() {
 
                 Scaffold(
                     containerColor = ProSurface,
-                    bottomBar = { ProNavBar(currentScreen) { currentScreen = it } }
+                    bottomBar = { ProNavBar(currentScreen) { currentScreen = it } },
+                    floatingActionButton = {
+                        val context = LocalContext.current
+                        FloatingActionButton(onClick = {
+                            val intent = android.content.Intent(context, CameraSelectionActivity::class.java)
+                            context.startActivity(intent)
+                        }) {
+                            Icon(Icons.Default.PhotoCamera, contentDescription = "Camera")
+                        }
+                    }
+
                 ) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
                         AnimatedContent(targetState = currentScreen, label = "Fade") { target ->
@@ -245,12 +256,12 @@ fun ProDashboard(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 3. Command Grid
+        // 3. COMMAND CENTER
         Text("COMMANDS", style = MaterialTheme.typography.labelSmall, color = ProTextSub, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
 
+        // First Row: Mesh Networking
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Host Button
             ProCommandCard(
                 title = "Broadcast",
                 icon = Icons.Default.WifiTethering,
@@ -258,17 +269,34 @@ fun ProDashboard(
                 modifier = Modifier.weight(1f),
                 onClick = onHost
             )
-            // Scan Button
             ProCommandCard(
                 title = "Search Area",
                 icon = Icons.Default.Radar,
-                color = Color(0xFF7C3AED), // Violet
+                color = Color(0xFF7C3AED),
                 modifier = Modifier.weight(1f),
                 onClick = onScan
             )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
+
+        // Second Row: AI Tools (This is where our new button goes!)
+        val context = LocalContext.current
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ProCommandCard(
+                title = "CAMERA TEST",
+                icon = Icons.Default.PhotoCamera, // New Icon
+                color = ProSuccess,             // Green for safety/medical
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    // This launches the intermediate selection screen we created
+                    val intent = android.content.Intent(context, CameraSelectionActivity::class.java)
+                    context.startActivity(intent)
+                }
+            )
+            // Placeholder for a future tool (or keep empty for now)
+            Spacer(modifier = Modifier.weight(1f))
+        }
 
         // Stop Button
         OutlinedButton(
@@ -446,7 +474,7 @@ fun MapScreen(victims: List<SosPayload>, myName: String) {
                 marker.position = pos
                 marker.title = victim.victimName
                 marker.subDescription = victim.message
-                marker.icon = androidx.core.content.ContextCompat.getDrawable(context, org.osmdroid.library.R.drawable.marker_default)
+                marker.icon = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_victim_pin)
                 map.overlays.add(marker)
                 if (myPos != null) {
                     val line = Polyline()
@@ -458,4 +486,5 @@ fun MapScreen(victims: List<SosPayload>, myName: String) {
             map.invalidate()
         })
     }
+    val x = 1
 }

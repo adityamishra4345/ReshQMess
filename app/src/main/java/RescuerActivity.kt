@@ -40,6 +40,14 @@ class RescuerActivity : AppCompatActivity() {
         locationOverlay.enableMyLocation()
         map.overlays.add(locationOverlay)
 
+        // Setup the Open Scanner Button
+        val btnOpenScanner = findViewById<android.widget.Button>(R.id.btnOpenScanner)
+        btnOpenScanner.setOnClickListener {
+            // An 'Intent' is Android's way of moving from one screen to another
+            val intent = android.content.Intent(this, ScannerActivity::class.java)
+            startActivity(intent)
+        }
+
         // TEST: Add a victim near Uzan Bazar
         addVictimMarker(26.1912, 91.7502, "Victim A")
     }

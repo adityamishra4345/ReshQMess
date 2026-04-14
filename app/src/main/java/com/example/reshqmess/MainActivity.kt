@@ -2,16 +2,26 @@
 package com.example.reshqmess
 
 
-
+import android.graphics.Bitmap
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import android.content.Context
+import org.json.JSONObject
+import java.io.IOException
 import android.Manifest
 import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -64,6 +74,7 @@ import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.util.concurrent.Executors
+
 
 // --- 🏛️ PROFESSIONAL COLOR SYSTEM ---
 val ProPrimary = Color(0xFF2563EB)
@@ -135,11 +146,12 @@ class MainActivity : ComponentActivity() {
         }
 
         val filter = IntentFilter("com.example.reshqmess.SOS_TRIGGERED")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(sosReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(sosReceiver, filter)
-        }
+        ContextCompat.registerReceiver(
+            this,
+            sosReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
 
         setContent {
             MaterialTheme(
@@ -626,49 +638,48 @@ fun MapScreen(victims: List<SosPayload>, myName: String) {
 }
 
 // --- 📷 OFFLINE MEDICINE SCANNER (Advanced Fuzzy Matching) ---
+// --- 📷 OFFLINE MEDICINE SCANNER (Advanced Fuzzy Matching) ---
 @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
 @Composable
 fun MedScannerScreen(onClose: () -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Upgraded Dictionary: Includes Generic, Indian Brands, and L-Hist Mont
-    val disasterMeds = mapOf(
-        "AMOXICILLIN" to "Antibiotic. Treats bacterial infections. Do NOT use for viruses.",
-        "AUGMENTIN" to "Antibiotic (Amoxicillin/Clavulanate). Treats severe bacterial infections.",
-        "IBUPROFEN" to "Pain/Fever reducer. Reduces inflammation. Take with food.",
-        "PARACETAMOL" to "Pain/Fever reducer. Safe for mild to moderate pain.",
-        "DOLO" to "Pain/Fever reducer (Paracetamol 650mg). Do not exceed 4 tablets a day.",
-        "CROCIN" to "Pain/Fever reducer (Paracetamol). Safe for mild to moderate pain.",
-        "CALPOL" to "Pain/Fever reducer (Paracetamol). Often given to children.",
-        "LOPERAMIDE" to "Anti-diarrheal. Controls acute diarrhea. Stay hydrated!",
-        "AZITHROMYCIN" to "Antibiotic. Often used for respiratory/throat infections.",
-        "ASPIRIN" to "Pain reliever / Blood thinner. Can be chewed during a suspected heart attack.",
-        "CETIRIZINE" to "Antihistamine. Treats allergic reactions and hives.",
-        "OFLOXACIN" to "Antibiotic. Often used for severe bacterial diarrhea or UTIs.",
-        "PANTOPRAZOLE" to "Antacid. Reduces stomach acid. Used for severe acidity/ulcers.",
-        "DIGENE" to "Antacid. Chewable tablet for fast relief from gas and acidity.",
-
-        // Added specifically for the photo you shared
-        "LHIST" to "Allergy & Asthma Relief. Treats severe allergies, sneezing, and prevents asthma attacks. (Levocetirizine + Montelukast)",
-        "LEVOCETIRIZINE" to "Antihistamine. Treats allergic reactions, runny nose, and hives. May cause drowsiness.",
-        "MONTELUKAST" to "Anti-asthmatic. Prevents asthma attacks and treats severe allergies."
-    )
+    val jsonMeds = remember {
+        val map = mutableMapOf<String, String>()
+        val jsonString = loadJSONFromAsset(context, "medicines.json")
+        if (jsonString != null) {
+            try {
+                val jsonObject = JSONObject(jsonString)
+                jsonObject.keys().forEach { key ->
+                    map[key.uppercase()] = jsonObject.getString(key)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        map
+    }
 
     var foundMedName by remember { mutableStateOf<String?>(null) }
     var foundMedDesc by remember { mutableStateOf<String?>(null) }
-    var liveScannedText by remember { mutableStateOf("Initializing Scanner...") }
+    var liveScannedText by remember { mutableStateOf("Align medicine text in the box...") }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        // 1. THE CAMERA PREVIEW & ANALYZER
         AndroidView(
             factory = { ctx ->
                 val previewView = PreviewView(ctx)
+                previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
+
                 val cameraExecutor = Executors.newSingleThreadExecutor()
                 val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
 
                 cameraProviderFuture.addListener({
                     val cameraProvider = cameraProviderFuture.get()
-                    val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
+                    val preview = Preview.Builder().build().also {
+                        it.setSurfaceProvider(previewView.surfaceProvider)
+                    }
 
                     val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
                     val imageAnalyzer = ImageAnalysis.Builder()
@@ -676,32 +687,37 @@ fun MedScannerScreen(onClose: () -> Unit) {
                         .build()
                         .also { analysis ->
                             analysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                                val mediaImage = imageProxy.image
-                                if (mediaImage != null) {
-                                    val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-                                    recognizer.process(image)
-                                        .addOnSuccessListener { visionText ->
-                                            val scannedText = visionText.text.uppercase()
+                                val fullBitmap = imageProxy.toBitmap()
 
-                                            // Update UI with what it actually sees
-                                            if (scannedText.isNotBlank()) {
-                                                liveScannedText = "Seeing: " + scannedText.take(40).replace("\n", " ") + "..."
-                                            }
+                                val cropWidth = (fullBitmap.width * 0.8).toInt()
+                                val cropHeight = (fullBitmap.height * 0.25).toInt()
+                                val startX = (fullBitmap.width - cropWidth) / 2
+                                val startY = (fullBitmap.height - cropHeight) / 2
 
-                                            // THE MAGIC: Fuzzy Searching the garbage text
-                                            for ((medName, description) in disasterMeds) {
-                                                if (scannedText.contains(medName) || fuzzyMatch(scannedText, medName)) {
-                                                    foundMedName = medName
-                                                    foundMedDesc = description
-                                                    break
-                                                }
+                                val croppedBitmap = Bitmap.createBitmap(
+                                    fullBitmap, startX, startY, cropWidth, cropHeight
+                                )
+
+                                val image = InputImage.fromBitmap(croppedBitmap, 0)
+
+                                recognizer.process(image)
+                                    .addOnSuccessListener { visionText ->
+                                        val scannedText = visionText.text.uppercase()
+
+                                        if (scannedText.isNotBlank()) {
+                                            liveScannedText = "Seeing: " + scannedText.take(30).replace("\n", " ") + "..."
+                                        }
+
+                                        for ((medName, description) in jsonMeds) {
+                                            if (scannedText.contains(medName) || fuzzyMatch(scannedText, medName)) {
+                                                foundMedName = medName
+                                                foundMedDesc = description
+                                                break
                                             }
                                         }
-                                        .addOnFailureListener { e -> Log.e("MLKit", "Text recognition failed", e) }
-                                        .addOnCompleteListener { imageProxy.close() }
-                                } else {
-                                    imageProxy.close()
-                                }
+                                    }
+                                    .addOnFailureListener { e -> Log.e("MLKit", "Text recognition failed", e) }
+                                    .addOnCompleteListener { imageProxy.close() }
                             }
                         }
 
@@ -718,37 +734,82 @@ fun MedScannerScreen(onClose: () -> Unit) {
             modifier = Modifier.fillMaxSize()
         )
 
-        // Close Button
-        IconButton(onClick = onClose, modifier = Modifier.padding(16.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape).align(Alignment.TopStart)) {
-            Icon(Icons.Default.Close, "Close Scanner", tint = Color.White)
+        // 2. THE VISUAL OVERLAY (The "Target Box")
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
+                }
+        ) {
+            val canvasWidth = size.width
+            val canvasHeight = size.height
+
+            val rectWidth = canvasWidth * 0.8f
+            val rectHeight = canvasHeight * 0.25f
+            val left = (canvasWidth - rectWidth) / 2
+            val top = (canvasHeight - rectHeight) / 2
+
+            // Draw the semi-transparent black background
+            drawRect(Color.Black.copy(alpha = 0.7f))
+
+            // Punch the clear hole in the middle
+            drawRoundRect(
+                color = Color.Transparent,
+                topLeft = Offset(left, top),
+                size = Size(rectWidth, rectHeight),
+                cornerRadius = CornerRadius(24f, 24f),
+                blendMode = BlendMode.Clear
+            )
+
+            // Draw a nice green border around the hole
+            drawRoundRect(
+                color = ProSuccess,
+                topLeft = Offset(left, top),
+                size = Size(rectWidth, rectHeight),
+                cornerRadius = CornerRadius(24f, 24f),
+                style = Stroke(width = 8f)
+            )
         }
 
-        // Live Text Debugger
-        Surface(color = Color.Black.copy(alpha = 0.6f), shape = RoundedCornerShape(12.dp), modifier = Modifier.align(Alignment.TopCenter).padding(top = 24.dp).widthIn(max = 250.dp)) {
-            Text(text = liveScannedText, color = Color.Green, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+        // 3. UI CONTROLS
+        IconButton(
+            onClick = onClose,
+            modifier = Modifier.padding(16.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape).align(Alignment.TopStart)
+        ) {
+            Icon(Icons.Default.Close, "Close", tint = Color.White)
         }
 
-        // Target UI
-        Box(modifier = Modifier.size(300.dp, 120.dp).align(Alignment.Center)) {
-            // Draws a subtle white box to guide the user's camera
-            Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp)))
-            Text("Center Medicine Name Here", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp))
+        Surface(
+            color = Color.Black.copy(alpha = 0.8f),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 24.dp).widthIn(max = 250.dp)
+        ) {
+            Text(
+                text = liveScannedText,
+                color = Color.Green,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(12.dp)
+            )
         }
 
-        // Result Card
+        // 4. FOUND MEDICINE CARD
         if (foundMedName != null) {
-            Card(modifier = Modifier.fillMaxWidth().padding(16.dp).align(Alignment.BottomCenter), colors = CardDefaults.cardColors(containerColor = ProSuccess), elevation = CardDefaults.cardElevation(8.dp), shape = RoundedCornerShape(16.dp)) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(16.dp).align(Alignment.BottomCenter),
+                colors = CardDefaults.cardColors(containerColor = ProSuccess)
+            ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.MedicalServices, null, tint = Color.White, modifier = Modifier.size(28.dp))
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(foundMedName!!, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(foundMedName!!, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(foundMedDesc!!, style = MaterialTheme.typography.bodyMedium, color = Color.White)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { foundMedName = null }, colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = ProSuccess), modifier = Modifier.fillMaxWidth()) {
-                        Text("Scan Another", fontWeight = FontWeight.Bold)
+                    Button(
+                        onClick = { foundMedName = null },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = ProSuccess),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Scan Another")
                     }
                 }
             }
@@ -797,4 +858,19 @@ fun levenshtein(lhs: CharSequence, rhs: CharSequence): Int {
         val swap = cost; cost = newCost; newCost = swap
     }
     return cost[lhsLength]
+}
+
+// Reads the raw JSON file from the offline assets folder
+fun loadJSONFromAsset(context: Context, fileName: String): String? {
+    return try {
+        val inputStream = context.assets.open(fileName)
+        val size = inputStream.available()
+        val buffer = ByteArray(size)
+        inputStream.read(buffer)
+        inputStream.close()
+        String(buffer, Charsets.UTF_8)
+    } catch (ex: IOException) {
+        ex.printStackTrace()
+        null
+    }
 }

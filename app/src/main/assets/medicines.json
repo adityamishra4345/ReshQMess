@@ -1,0 +1,501 @@
+{
+  "Paracetamol": {
+    "indications": "Treats mild to moderate pain and reduces fever.",
+    "dosage_adult": "500-1000mg orally every 6 hours. Max 4g/day.",
+    "critical_warnings": "Severe fatal liver damage if maximum daily dose exceeded."
+  },
+  "Ibuprofen": {
+    "indications": "Relieves pain, acute inflammation, and fever.",
+    "dosage_adult": "400mg orally every 6-8 hours with food.",
+    "critical_warnings": "High risk of severe stomach bleeding and kidney damage."
+  },
+  "Diclofenac": {
+    "indications": "Severe acute pain and joint inflammation.",
+    "dosage_adult": "50mg orally every 8 hours after meals.",
+    "critical_warnings": "High risk of cardiovascular events and gastrointestinal bleeding."
+  },
+  "Aspirin": {
+    "indications": "Mild pain, fever, and suspected heart attack.",
+    "dosage_adult": "300mg chewed for heart attack, orally for pain.",
+    "critical_warnings": "Avoid in bleeding disorders; causes Reye's syndrome in youth."
+  },
+  "Tramadol": {
+    "indications": "Moderate to severe acute or chronic pain.",
+    "dosage_adult": "50-100mg orally every 4-6 hours.",
+    "critical_warnings": "Risk of seizures, fatal respiratory depression, and severe addiction."
+  },
+  "Ketorolac": {
+    "indications": "Severe short-term acute pain management.",
+    "dosage_adult": "10mg orally every 4 to 6 hours. Maximum 40mg per day. 5 days max.",
+    "critical_warnings": "High risk of severe gastrointestinal bleeding and kidney failure."
+  },
+  "Mefenamic Acid": {
+    "indications": "Menstrual pain and moderate acute pain.",
+    "dosage_adult": "500mg orally initially, then 250mg every 6 hours.",
+    "critical_warnings": "Worsens asthma; causes severe gastrointestinal irritation and bleeding."
+  },
+  "Aceclofenac": {
+    "indications": "Pain and inflammation in joints and muscles.",
+    "dosage_adult": "100mg orally twice daily after food.",
+    "critical_warnings": "Risk of heart failure and severe gastrointestinal ulcers."
+  },
+  "Amoxicillin": {
+    "indications": "Common bacterial respiratory and skin infections.",
+    "dosage_adult": "500mg orally every 8 hours.",
+    "critical_warnings": "Fatal anaphylaxis risk in penicillin-allergic patients."
+  },
+  "Amoxicillin + Clavulanic Acid": {
+    "indications": "Resistant bacterial infections and animal bites.",
+    "dosage_adult": "625mg orally every 12 hours with food.",
+    "critical_warnings": "Risk of severe liver toxicity and severe diarrhea."
+  },
+  "Azithromycin": {
+    "indications": "Respiratory, skin, and diarrheal bacterial infections.",
+    "dosage_adult": "500mg orally once daily for 3 days.",
+    "critical_warnings": "Can cause potentially fatal irregular heart rhythms."
+  },
+  "Ciprofloxacin": {
+    "indications": "Severe urinary and gastrointestinal bacterial infections.",
+    "dosage_adult": "500mg orally every 12 hours.",
+    "critical_warnings": "High risk of tendon rupture and permanent nerve damage."
+  },
+  "Doxycycline": {
+    "indications": "Atypical infections, scrub typhus, and cholera.",
+    "dosage_adult": "100mg orally every 12 hours after food.",
+    "critical_warnings": "Avoid in pregnancy; causes severe extreme sensitivity to sunlight."
+  },
+  "Metronidazole": {
+    "indications": "Anaerobic bacterial infections and amoebic dysentery.",
+    "dosage_adult": "400mg orally every 8 hours.",
+    "critical_warnings": "Strictly avoid alcohol; causes severe violent vomiting reaction."
+  },
+  "Ceftriaxone": {
+    "indications": "Severe, life-threatening bacterial infections like meningitis.",
+    "dosage_adult": "1g to 2g via IV or IM once daily.",
+    "critical_warnings": "Never mix with IV calcium; forms fatal precipitates."
+  },
+  "Cefixime": {
+    "indications": "Typhoid, respiratory, and urinary bacterial infections.",
+    "dosage_adult": "200mg orally twice daily.",
+    "critical_warnings": "Can cause severe Clostridium difficile-associated diarrhea."
+  },
+  "Cotrimoxazole": {
+    "indications": "Urinary tract and severe respiratory bacterial infections.",
+    "dosage_adult": "One double-strength tablet orally every 12 hours.",
+    "critical_warnings": "Causes severe fatal skin peeling and bone marrow suppression."
+  },
+  "Levofloxacin": {
+    "indications": "Severe respiratory, urinary, and skin infections.",
+    "dosage_adult": "500mg orally once daily.",
+    "critical_warnings": "Tendon rupture, nervous system toxicity, and fatal heart arrhythmias."
+  },
+  "Ofloxacin": {
+    "indications": "Typhoid, urinary, and severe pelvic infections.",
+    "dosage_adult": "200-400mg orally every 12 hours.",
+    "critical_warnings": "Risk of tendonitis and exacerbation of myasthenia gravis."
+  },
+  "Norfloxacin": {
+    "indications": "Uncomplicated urinary tract and gastrointestinal infections.",
+    "dosage_adult": "400mg orally every 12 hours.",
+    "critical_warnings": "Tendon rupture risk; do not consume with dairy products."
+  },
+  "Erythromycin": {
+    "indications": "Penicillin alternative for respiratory and skin infections.",
+    "dosage_adult": "250-500mg orally every 6 hours.",
+    "critical_warnings": "Causes severe liver toxicity and fatal cardiac rhythm disturbances."
+  },
+  "Oral Rehydration Salts (ORS)": {
+    "indications": "Severe dehydration from acute diarrhea or vomiting.",
+    "dosage_adult": "Mix 1 packet in 1L clean water. Drink continuously.",
+    "critical_warnings": "Use strictly clean water; discard unconsumed solution after 24 hours."
+  },
+  "Loperamide": {
+    "indications": "Acute, non-infectious watery diarrhea control.",
+    "dosage_adult": "4mg initially, then 2mg after each loose stool.",
+    "critical_warnings": "Never use for bloody diarrhea or high fever dysentery."
+  },
+  "Racecadotril": {
+    "indications": "Acute watery diarrhea without blood or fever.",
+    "dosage_adult": "100mg orally every 8 hours.",
+    "critical_warnings": "Do not use for dysentery or severe renal impairment."
+  },
+  "Ondansetron": {
+    "indications": "Severe acute nausea and vomiting.",
+    "dosage_adult": "4-8mg orally or dissolving tablet every 8 hours.",
+    "critical_warnings": "Prolongs QT interval; risk of sudden fatal heart arrhythmias."
+  },
+  "Domperidone": {
+    "indications": "Nausea, vomiting, and delayed gastric emptying.",
+    "dosage_adult": "10mg orally up to three times daily.",
+    "critical_warnings": "Risk of sudden cardiac death at very high doses."
+  },
+  "Metoclopramide": {
+    "indications": "Severe nausea and impaired gastric emptying.",
+    "dosage_adult": "10mg orally every 8 hours.",
+    "critical_warnings": "Causes severe, irreversible involuntary muscle spasms and facial tics."
+  },
+  "Promethazine": {
+    "indications": "Severe nausea, motion sickness, and allergic reactions.",
+    "dosage_adult": "25mg orally or IM every 6 hours.",
+    "critical_warnings": "Fatal respiratory depression; causes tissue gangrene if injected intra-arterially."
+  },
+  "Pantoprazole": {
+    "indications": "Severe acid reflux and bleeding peptic ulcers.",
+    "dosage_adult": "40mg orally once daily before breakfast.",
+    "critical_warnings": "Increases risk of severe intestinal infections and bone fractures."
+  },
+  "Omeprazole": {
+    "indications": "Acid reflux, heartburn, and stomach ulcer treatment.",
+    "dosage_adult": "20mg orally once daily before a meal.",
+    "critical_warnings": "Masks stomach cancer symptoms; dangerously lowers blood magnesium levels."
+  },
+  "Ranitidine": {
+    "indications": "Mild acid reflux and general indigestion.",
+    "dosage_adult": "150mg orally twice daily.",
+    "critical_warnings": "Dose adjustment required in patients with severe kidney disease."
+  },
+  "Aluminium Hydroxide + Magnesium Hydroxide + Simethicone": {
+    "indications": "Immediate relief for heartburn, bloating, and gas.",
+    "dosage_adult": "10-20mL orally after meals and at bedtime.",
+    "critical_warnings": "Blocks absorption of critical life-saving antibiotics if taken simultaneously."
+  },
+  "Cetirizine": {
+    "indications": "Allergic reactions, hives, and severe itching.",
+    "dosage_adult": "10mg orally once daily.",
+    "critical_warnings": "Causes significant drowsiness; highly dangerous if operating heavy machinery."
+  },
+  "Levocetirizine": {
+    "indications": "Allergic rhinitis and chronic skin allergies.",
+    "dosage_adult": "5mg orally once daily.",
+    "critical_warnings": "Causes severe drowsiness and acute urinary retention in elderly."
+  },
+  "Chlorpheniramine": {
+    "indications": "Acute allergic reactions and severe cold symptoms.",
+    "dosage_adult": "4mg orally every 4-6 hours.",
+    "critical_warnings": "High risk of profound sedation, dry mouth, and confusion."
+  },
+  "Fexofenadine": {
+    "indications": "Non-drowsy relief for acute allergic reactions.",
+    "dosage_adult": "120-180mg orally once daily.",
+    "critical_warnings": "Do not take with fruit juices; eliminates drug absorption."
+  },
+  "Hydrocortisone": {
+    "indications": "Severe allergic reactions, asthma attacks, and shock.",
+    "dosage_adult": "100mg IV or IM injection in acute emergencies.",
+    "critical_warnings": "Suppresses immune system; absolutely contraindicated in systemic fungal infections."
+  },
+  "Dexamethasone": {
+    "indications": "Severe inflammation, brain swelling, and severe asthma.",
+    "dosage_adult": "4-6mg orally or IV once daily.",
+    "critical_warnings": "Rapidly spikes blood sugar; severely suppresses immune infection response."
+  },
+  "Prednisolone": {
+    "indications": "Asthma flare-ups, severe allergies, and systemic inflammation.",
+    "dosage_adult": "10-40mg orally once daily.",
+    "critical_warnings": "Long-term use causes severe osteoporosis and adrenal gland failure."
+  },
+  "Deflazacort": {
+    "indications": "Severe inflammatory and autoimmune disorders.",
+    "dosage_adult": "6-30mg orally once daily.",
+    "critical_warnings": "Massively increases patient susceptibility to severe, life-threatening infections."
+  },
+  "Epinephrine (Adrenaline)": {
+    "indications": "Cardiac arrest and severe anaphylactic shock.",
+    "dosage_adult": "0.3mg to 0.5mg IM injected into outer thigh.",
+    "critical_warnings": "Can trigger fatal heart arrhythmias and extreme hypertensive crisis."
+  },
+  "Salbutamol": {
+    "indications": "Acute asthma attacks and severe bronchospasm.",
+    "dosage_adult": "1-2 puffs via inhaler every 4 hours.",
+    "critical_warnings": "Causes dangerously rapid heart rate, severe tremors, and hypokalemia."
+  },
+  "Levosalbutamol": {
+    "indications": "Asthma attacks requiring fewer cardiac side effects.",
+    "dosage_adult": "1-2 puffs via inhaler every 4-6 hours.",
+    "critical_warnings": "Risk of paradoxical bronchospasm, causing sudden worsening of breathing."
+  },
+  "Budesonide": {
+    "indications": "Long-term asthma control and severe croup.",
+    "dosage_adult": "200-400mcg via inhaler twice daily.",
+    "critical_warnings": "Causes severe oral fungal infections if mouth is unrinsed."
+  },
+  "Dextromethorphan": {
+    "indications": "Dry, hacking, non-productive severe cough.",
+    "dosage_adult": "10-20mg orally every 4 hours.",
+    "critical_warnings": "Fatal serotonin syndrome if mixed with certain psychiatric antidepressants."
+  },
+  "Guaifenesin": {
+    "indications": "Chest congestion and thick mucus cough.",
+    "dosage_adult": "200-400mg orally every 4 hours.",
+    "critical_warnings": "Ineffective without aggressive hydration; must drink plenty of water."
+  },
+  "Ambroxol": {
+    "indications": "Thick mucus, bronchitis, and respiratory tract infections.",
+    "dosage_adult": "30mg orally three times daily.",
+    "critical_warnings": "May cause severe gastrointestinal distress and serious skin allergies."
+  },
+  "Bromhexine": {
+    "indications": "Mucus clearance in severe chest and lung infections.",
+    "dosage_adult": "8mg orally three times daily.",
+    "critical_warnings": "Use with extreme caution in patients with active gastric ulcers."
+  },
+  "Povidone-Iodine": {
+    "indications": "Wound disinfection and pre-surgical skin preparation.",
+    "dosage_adult": "Apply topically to cleaned wound area 1-3 times daily.",
+    "critical_warnings": "Causes thyroid dysfunction with prolonged use on massive burns."
+  },
+  "Chlorhexidine": {
+    "indications": "Skin disinfection and mouthwash for oral infections.",
+    "dosage_adult": "Apply to skin, or rinse mouth twice daily.",
+    "critical_warnings": "Causes permanent deafness if allowed to enter the inner ear."
+  },
+  "Silver Sulfadiazine": {
+    "indications": "Prevention of infection in severe burn wounds.",
+    "dosage_adult": "Apply 1/16-inch thick layer to burn wound daily.",
+    "critical_warnings": "Can cause a severe, dangerous drop in white blood cells."
+  },
+  "Hydrogen Peroxide": {
+    "indications": "Minor wound cleaning and removing dead tissue.",
+    "dosage_adult": "Apply 3% solution topically directly to the wound.",
+    "critical_warnings": "Destroys healthy tissue and delays healing if used repeatedly."
+  },
+  "Surgical Spirit (Ethanol)": {
+    "indications": "Disinfecting unbroken skin and cleaning medical instruments.",
+    "dosage_adult": "Apply topically to intact skin only.",
+    "critical_warnings": "Never apply to deep open wounds; causes massive tissue necrosis."
+  },
+  "Clotrimazole": {
+    "indications": "Fungal skin infections like ringworm and athlete's foot.",
+    "dosage_adult": "Apply thinly to affected area twice daily.",
+    "critical_warnings": "Can cause severe localized redness, stinging, and chemical blistering."
+  },
+  "Miconazole": {
+    "indications": "Fungal skin and severe vaginal yeast infections.",
+    "dosage_adult": "Apply topically twice daily for 2-4 weeks.",
+    "critical_warnings": "Can interact dangerously with blood thinners if absorbed systemically."
+  },
+  "Fluconazole": {
+    "indications": "Systemic fungal infections and severe yeast infections.",
+    "dosage_adult": "150mg orally as a single dose for yeast infections.",
+    "critical_warnings": "Causes severe liver damage and fatal cardiac rhythm abnormalities."
+  },
+  "Ketoconazole": {
+    "indications": "Severe fungal skin infections and severe dandruff.",
+    "dosage_adult": "Apply topical cream or shampoo once or twice daily.",
+    "critical_warnings": "Oral administration causes severe, frequently fatal massive liver toxicity."
+  },
+  "Terbinafine": {
+    "indications": "Severe ringworm and stubborn fungal nail infections.",
+    "dosage_adult": "Apply cream once daily, or 250mg orally daily.",
+    "critical_warnings": "Oral form strictly requires continuous, rigorous liver function monitoring."
+  },
+  "Chlorine Tablets (Water Purification)": {
+    "indications": "Purifying bacterially contaminated water for emergency drinking.",
+    "dosage_adult": "Check packaging for ratio (usually 1 tab per 1L to 5L). Wait 30 mins.",
+    "critical_warnings": "Highly toxic if swallowed directly; fatally destroys stomach lining."
+  },
+  "Halazone Tablets": {
+    "indications": "Emergency chemical water disinfection and purification.",
+    "dosage_adult": "1 tablet per 1 liter of water. Wait 30 minutes.",
+    "critical_warnings": "Totally ineffective against Cryptosporidium parasites; highly toxic raw."
+  },
+  "Activated Charcoal": {
+    "indications": "Acute oral poisoning and recent drug overdoses.",
+    "dosage_adult": "50-100g orally mixed with water immediately after ingestion.",
+    "critical_warnings": "Fatal lung damage if inhaled; NEVER give to unconscious or vomiting patients."},
+  "Diazepam": {
+    "indications": "Active seizures, severe acute anxiety, and muscle spasms.",
+    "dosage_adult": "5-10mg IV slowly, or 10mg orally.",
+    "critical_warnings": "Causes fatal respiratory depression, especially if mixed with alcohol."
+  },
+  "Midazolam": {
+    "indications": "Continuous seizures (status epilepticus) and procedural sedation.",
+    "dosage_adult": "5-10mg IM or IV for active seizing.",
+    "critical_warnings": "Extremely high risk of complete breathing cessation; requires airway management."
+  },
+  "Lorazepam": {
+    "indications": "Prolonged active seizures and severe acute anxiety.",
+    "dosage_adult": "2-4mg IV slowly.",
+    "critical_warnings": "Causes severe profound sedation and acute respiratory failure."
+  },
+  "Phenytoin": {
+    "indications": "Long-term prevention of generalized tonic-clonic seizures.",
+    "dosage_adult": "100mg orally three times daily.",
+    "critical_warnings": "Causes severe skin necrosis, liver damage, and bone marrow collapse."
+  },
+  "Levetiracetam": {
+    "indications": "Broad-spectrum prevention of multiple seizure types.",
+    "dosage_adult": "500mg orally twice daily.",
+    "critical_warnings": "Can induce severe psychiatric depression, agitation, and suicidal thoughts."
+  },
+  "Artemether + Lumefantrine": {
+    "indications": "Uncomplicated, drug-resistant Falciparum malaria.",
+    "dosage_adult": "4 tablets initially, then 4 at 8h, 24h, 36h, 48h, 60h.",
+    "critical_warnings": "Prolongs QT interval fatally; must be taken with high-fat food."
+  },
+  "Artesunate": {
+    "indications": "Severe, complicated, life-threatening malaria infections.",
+    "dosage_adult": "2.4mg/kg IV or IM at 0, 12, and 24 hours.",
+    "critical_warnings": "Causes delayed, severe, and massive breakdown of red blood cells."
+  },
+  "Chloroquine": {
+    "indications": "Vivax malaria treatment and generalized prophylaxis.",
+    "dosage_adult": "600mg base initially, 300mg at 6, 24, and 48 hours.",
+    "critical_warnings": "Causes permanent, irreversible eye damage and blindness with long-term use."
+  },
+  "Primaquine": {
+    "indications": "Radical cure clearing liver-stage Vivax malaria.",
+    "dosage_adult": "15mg base orally daily for exactly 14 days.",
+    "critical_warnings": "Causes massive fatal red blood cell destruction in G6PD deficiency."
+  },
+  "Albendazole": {
+    "indications": "Intestinal parasitic worms (roundworm, hookworm, tapeworm).",
+    "dosage_adult": "400mg orally as a single one-time dose.",
+    "critical_warnings": "Causes severe bone marrow suppression and acute liver toxicity."
+  },
+  "Mebendazole": {
+    "indications": "Pinworms, roundworms, and hookworm intestinal infections.",
+    "dosage_adult": "100mg orally twice daily for 3 consecutive days.",
+    "critical_warnings": "Strictly absolutely contraindicated in pregnancy; causes severe birth defects."
+  },
+  "Ivermectin": {
+    "indications": "Severe scabies, lice, and severe strongyloidiasis.",
+    "dosage_adult": "200mcg/kg orally as a single dose.",
+    "critical_warnings": "Causes severe fatal neurological toxicity if blood-brain barrier is compromised."
+  },
+  "Tetanus Toxoid (TT) Vaccine": {
+    "indications": "Prevention of fatal tetanus in contaminated wounds.",
+    "dosage_adult": "0.5mL IM injection into the deltoid muscle.",
+    "critical_warnings": "Risk of anaphylaxis; wait 10 years between boosters unless wound heavily soiled."
+  },
+  "Anti-Rabies Vaccine (ARV)": {
+    "indications": "Post-exposure prevention of rabies after animal bite.",
+    "dosage_adult": "0.5mL IM on days 0, 3, 7, 14, and 28.",
+    "critical_warnings": "Never skip any doses under any circumstance; rabies is 100% fatal."
+  },
+  "Isosorbide Dinitrate": {
+    "indications": "Severe angina, suspected heart attack, and heart failure.",
+    "dosage_adult": "5mg sublingually every 5 minutes. Maximum 3 doses.",
+    "critical_warnings": "Causes massive fatal drop in blood pressure if mixed with Viagra."
+  },
+  "Amlodipine": {
+    "indications": "Severe hypertension and chronic stable angina.",
+    "dosage_adult": "5-10mg orally once daily.",
+    "critical_warnings": "Causes severe fluid swelling in legs and severe low blood pressure."
+  },
+  "Atorvastatin": {
+    "indications": "Prevention of heart attack, stroke, and high cholesterol.",
+    "dosage_adult": "40-80mg orally once daily.",
+    "critical_warnings": "Causes severe massive muscle breakdown leading directly to acute kidney failure."
+  },
+  "Clopidogrel": {
+    "indications": "Acute heart attack and prevention of fatal blood clots.",
+    "dosage_adult": "300mg loading dose, then 75mg daily.",
+    "critical_warnings": "Causes severe, uncontrollable, and potentially fatal bleeding from minor physical trauma."
+  },
+  "Atropine": {
+    "indications": "Nerve gas poisoning and severe slow heart rate.",
+    "dosage_adult": "0.5-1mg IV for heart rate; 2mg+ repeated aggressively for pesticide poisoning.",
+    "critical_warnings": "Causes extreme fatal tachycardia and severe acute urinary retention."
+  },
+  "Calcium Gluconate": {
+    "indications": "Magnesium toxicity, severe low calcium, and severe hyperkalemia.",
+    "dosage_adult": "10mL of 10% solution IV slowly over 10 minutes.",
+    "critical_warnings": "Causes immediate fatal cardiac arrest if injected IV too quickly."
+  },
+  "Magnesium Sulfate": {
+    "indications": "Eclampsia (pregnancy seizures) and severe acute asthma.",
+    "dosage_adult": "4g IV over 20 minutes for active eclampsia.",
+    "critical_warnings": "Causes total respiratory paralysis and loss of deep tendon reflexes."
+  },
+  "Vitamin C (Ascorbic Acid)": {
+    "indications": "Severe scurvy, wound healing, and methemoglobinemia.",
+    "dosage_adult": "500-1000mg orally daily.",
+    "critical_warnings": "Extremely high doses cause severe kidney stones in susceptible individuals."
+  },
+  "Zinc Sulfate": {
+    "indications": "Severe childhood diarrhea and extreme zinc deficiency.",
+    "dosage_adult": "20mg orally daily for 10-14 days.",
+    "critical_warnings": "Causes severe violent vomiting if taken on a completely empty stomach."
+  },
+  "Vitamin K (Phytomenadione)": {
+    "indications": "Warfarin overdose and severe systemic bleeding disorders.",
+    "dosage_adult": "1-10mg slow IV or orally.",
+    "critical_warnings": "Causes sudden severe anaphylactic shock if injected IV too rapidly."
+  },
+  "Permethrin": {
+    "indications": "Severe scabies and head lice treatment.",
+    "dosage_adult": "Apply 5% cream to whole body, wash off after 8-14 hours.",
+    "critical_warnings": "May cause severe burning sensation; strictly avoid eyes and mouth."
+  },
+  "Gamma Benzene Hexachloride (Lindane)": {
+    "indications": "Second-line treatment for resistant scabies and lice.",
+    "dosage_adult": "Apply lotion thinly, wash off strictly after 8-12 hours.",
+    "critical_warnings": "Highly neurotoxic; causes severe seizures and brain damage if overused."
+  },
+  "Hyoscine Butylbromide": {
+    "indications": "Severe stomach, intestinal, or kidney muscle spasms.",
+    "dosage_adult": "10-20mg orally or IV every 6-8 hours.",
+    "critical_warnings": "Severely worsens glaucoma; causes severe, dangerously rapid heart rate."
+  },
+  "Dicyclomine": {
+    "indications": "Irritable bowel syndrome and severe intestinal cramps.",
+    "dosage_adult": "20mg orally 4 times daily.",
+    "critical_warnings": "Can cause fatal heat stroke by completely halting body sweating."
+  },
+  "Drotaverine": {
+    "indications": "Severe biliary colic, renal colic, and menstrual spasms.",
+    "dosage_adult": "40-80mg orally every 8 hours.",
+    "critical_warnings": "Causes severe sudden drop in blood pressure and vertigo if IV."
+  },
+  "Potassium Permanganate": {
+    "indications": "Cleansing infected wounds and fungal foot infections.",
+    "dosage_adult": "Dilute in water to 1:10000 ratio until pale pink.",
+    "critical_warnings": "Highly chemically corrosive; fatally burns skin and throat if undiluted."
+  },
+  "Lignocaine (Lidocaine)": {
+    "indications": "Local anesthesia for suturing and ventricular arrhythmias.",
+    "dosage_adult": "Inject locally. Maximum 4.5 mg/kg without adrenaline.",
+    "critical_warnings": "Causes immediate seizures and cardiac arrest if accidentally injected into blood."
+  },
+  "Bupivacaine": {
+    "indications": "Long-lasting local and spinal anesthesia for major surgery.",
+    "dosage_adult": "Dose strictly varies by specific nerve block type.",
+    "critical_warnings": "Extremely cardiotoxic; accidental IV injection causes irreversible fatal cardiac arrest."
+  },
+  "Tranexamic Acid": {
+    "indications": "Severe massive trauma bleeding and heavy menstrual bleeding.",
+    "dosage_adult": "1g IV over 10 minutes, or 1g orally.",
+    "critical_warnings": "High risk of causing massive, fatal systemic blood clots."
+  },
+  "Ethamsylate": {
+    "indications": "Capillary bleeding and continuous surgical oozing.",
+    "dosage_adult": "500mg orally or IV every 6 hours.",
+    "critical_warnings": "May induce severe deep vein thrombosis; avoid in severe asthma."
+  },
+  "Normal Saline (0.9% NaCl)": {
+    "indications": "Emergency volume resuscitation, hypovolemic shock, and severe dehydration.",
+    "dosage_adult": "500mL to 1L IV fluid bolus administered rapidly.",
+    "critical_warnings": "Causes severe fluid overload and fatal pulmonary swelling in heart failure."
+  },
+  "Ringer's Lactate (RL)": {
+    "indications": "Massive volume blood loss, severe burns, and surgery.",
+    "dosage_adult": "Titrate IV infusion strictly to maintain adequate blood pressure.",
+    "critical_warnings": "Absolutely contraindicated in severe liver failure; body cannot metabolize lactate."
+  },
+  "Dextrose 5% (D5)": {
+    "indications": "Severe hypoglycemia and high sodium (hypernatremia) correction.",
+    "dosage_adult": "IV infusion titrated based on caloric and fluid needs.",
+    "critical_warnings": "Causes massive, fatal brain swelling if given during an acute stroke."
+  },
+  "Ciprofloxacin Eye/Ear Drops": {
+    "indications": "Bacterial conjunctivitis and severe outer ear infections.",
+    "dosage_adult": "1-2 drops in affected eye or ear every 4 hours.",
+    "critical_warnings": "Do not use if viral or fungal infection is suspected; worsens condition."
+  },
+  "Xylometazoline": {
+    "indications": "Severe acute nasal congestion blocking airway.",
+    "dosage_adult": "1 spray per nostril every 8-10 hours.",
+    "critical_warnings": "Causes extreme, permanent rebound congestion if used for more than 5 days."
+  }
+}

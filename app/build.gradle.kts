@@ -54,6 +54,7 @@ dependencies {
         // Google ML Kit for Offline Text Recognition
         implementation("com.google.mlkit:text-recognition:16.0.0")
     }
+    implementation("androidx.preference:preference-ktx:1.2.1")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

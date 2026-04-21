@@ -3,6 +3,8 @@ package com.example.reshqmess
 
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -637,6 +639,12 @@ fun MapScreen(victims: List<SosPayload>, myName: String) {
     }
 }
 
+data class MedInfo(
+    val indications: String,
+    val dosage: String,
+    val warnings: String
+)
+
 // --- 📷 OFFLINE MEDICINE SCANNER (Advanced Fuzzy Matching) ---
 // --- 📷 OFFLINE MEDICINE SCANNER (Advanced Fuzzy Matching) ---
 @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
@@ -645,14 +653,20 @@ fun MedScannerScreen(onClose: () -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    // Updated parsing logic
     val jsonMeds = remember {
-        val map = mutableMapOf<String, String>()
+        val map = mutableMapOf<String, MedInfo>()
         val jsonString = loadJSONFromAsset(context, "medicines.json")
         if (jsonString != null) {
             try {
-                val jsonObject = JSONObject(jsonString)
-                jsonObject.keys().forEach { key ->
-                    map[key.uppercase()] = jsonObject.getString(key)
+                val rootObject = JSONObject(jsonString)
+                rootObject.keys().forEach { key ->
+                    val detailsObj = rootObject.getJSONObject(key)
+                    map[key.uppercase()] = MedInfo(
+                        indications = detailsObj.optString("indications", "Data unavailable"),
+                        dosage = detailsObj.optString("dosage_adult", "Data unavailable"),
+                        warnings = detailsObj.optString("critical_warnings", "Data unavailable")
+                    )
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -660,9 +674,10 @@ fun MedScannerScreen(onClose: () -> Unit) {
         }
         map
     }
+    var foundMedInfo by remember { mutableStateOf<MedInfo?>(null) }
 
     var foundMedName by remember { mutableStateOf<String?>(null) }
-    var foundMedDesc by remember { mutableStateOf<String?>(null) }
+
     var liveScannedText by remember { mutableStateOf("Align medicine text in the box...") }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
@@ -708,10 +723,12 @@ fun MedScannerScreen(onClose: () -> Unit) {
                                             liveScannedText = "Seeing: " + scannedText.take(30).replace("\n", " ") + "..."
                                         }
 
-                                        for ((medName, description) in jsonMeds) {
+                                        // Update inside the imageAnalyzer where you loop through jsonMeds
+                                        // Inside your analyzer success listener:
+                                        for ((medName, info) in jsonMeds) {
                                             if (scannedText.contains(medName) || fuzzyMatch(scannedText, medName)) {
                                                 foundMedName = medName
-                                                foundMedDesc = description
+                                                foundMedInfo = info
                                                 break
                                             }
                                         }
@@ -794,19 +811,48 @@ fun MedScannerScreen(onClose: () -> Unit) {
         }
 
         // 4. FOUND MEDICINE CARD
-        if (foundMedName != null) {
+        // 4. FOUND MEDICINE CARD
+        if (foundMedName != null && foundMedInfo != null) {
             Card(
-                modifier = Modifier.fillMaxWidth().padding(16.dp).align(Alignment.BottomCenter),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .align(Alignment.BottomCenter),
                 colors = CardDefaults.cardColors(containerColor = ProSuccess)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(
+                    modifier = Modifier
+                        .padding(20.dp)
+                        .heightIn(max = 300.dp) // Prevents the card from taking over the whole screen
+                        .verticalScroll(rememberScrollState())
+                ) {
                     Text(foundMedName!!, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(foundMedDesc!!, style = MaterialTheme.typography.bodyMedium, color = Color.White)
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    // Indications
+                    Text("Indications:", fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(foundMedInfo!!.indications, style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Dosage
+                    Text("Adult Dosage:", fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(foundMedInfo!!.dosage, style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Warnings
+                    Text("Critical Warnings:", fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(foundMedInfo!!.warnings, style = MaterialTheme.typography.bodyMedium, color = Color.White)
+
+                    Spacer(modifier = Modifier.height(24.dp))
                     Button(
-                        onClick = { foundMedName = null },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = ProSuccess),
+                        onClick = {
+                            foundMedName = null
+                            foundMedInfo = null // This hides the card and resumes scanning
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = ProSuccess
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Scan Another")
